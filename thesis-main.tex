@@ -33,9 +33,9 @@
 Max 2000 characters, strict.
 \end{abstract}
 
-\begin{dedication} % this is optional
-Optional. Max a few lines.
-\end{dedication}
+%\begin{dedication} % this is optional
+%Optional. Max a few lines.
+%\end{dedication}
 
 %----------------------------------------------------------------------------------------
 \tableofcontents   
@@ -91,13 +91,100 @@ You may also put some code snippet (which is NOT float by default), eg: \cref{ls
 
 \section{Fancy formulas here}
 
+% --------------------------
+% CAPITOLO 2 (CONTESTO)
+% --------------------------
+
+\chapter{Contesto}
+\label{chap:contesto}
+
+Questo capitolo introduce gli elementi tecnici necessari a comprendere le scelte
+discusse nei capitoli successivi: il simulatore Alchemist, il programma Copernicus e i
+suoi datastore, i formati e le convenzioni con cui i dati geospaziali raster vengono distribuiti,
+e il paradigma su cui si basano le richieste asincrone verso i datastore.
+
+\section{Il simulatore Alchemist}
+\label{sec:alchemist}
+
+Alchemist \cite{alchemist} è un simulatore di sistemi complessi,
+scritto in Java e Kotlin, sviluppato a partire dal 2010 e mantenuto da allora come
+progetto open source da Danilo Pianini e collaboratori
+presso il Dipartimento di Informatica dell'università di Bologna.
+In Alchemist, una simulazione è composta da un \emph{environment},
+lo spazio in cui vivono i \emph{nodi}; ciascun nodo ospita \emph{molecole} (identificatori,
+l'equivalente di un nome di variabile) a cui sono associate
+\emph{concentrazioni}, i valori che esse assumono,
+e \emph{reazioni}, che ne descrivono l'evoluzione nel tempo. Questo capitolo si limita agli
+elementi necessari a collocare il lavoro descritto in questa tesi: la nozione di layer, il
+meccanismo con cui un nodo percepisce il tempo di simulazione, e il sistema di caricamento
+delle simulazioni da file YAML.
+\footnote{Il metamodello di Alchemist: \url{https://alchemistsimulator.github.io/explanation/metamodel/}}
+
+\subsection{Il concetto di \emph{layer}}
+\label{subsec:alchemist-layer}
+
+Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione continua nello spazio
+che associa alle posizioni di tipo \texttt{P} dell'environment un valore \texttt{T}.
+La sua interfaccia si riduce a un solo metodo:
+
+\begin{lstlisting}[float,language=Java]
+T getValue(P position);
+\end{lstlisting}
+
+Un nodo può quindi interrogare un layer con la propria posizione corrente e ottenere il
+valore che il layer associa a quel punto. Le implementazioni preesistenti in Alchemist
+realizzano principalmente layer sintetici (ad esempio \texttt{BidimensionalGaussianLayer},
+una distribuzione gaussiana bidimensionale centrata su un punto) non adatti a dati misurati,
+distribuiti in formati specialistici e campionati su griglie irregolari nello spazio e nel tempo.
+
+\subsection{Il tempo di simulazione}
+\label{subsec:alchemist-time}
+
+Alchemist rappresenta il tempo corrente di una simulazione come un valore scalare di tipo
+\texttt{Time}, privo di un'unità di misura intrinseca: la sua interpretazione è una convenzione
+lasciata al modellista della simulazione (ad esempio secondi, ore, giorni), non
+un vincolo imposto dal simulatore. Un nodo, o un componente che condivide la stessa esigenza
+percettiva, come un layer (Sezione~\ref{subsec:alchemist-layer}), può interrogare
+l'\texttt{Environment} per ottenerlo, con la possibilità che tale informazione non sia ancora
+disponibile in alcune fasi del ciclo di vita di una simulazione. 
+%le implicazioni di questo
+%vincolo sul design dei componenti di questa tesi sono discusse nel
+%Capitolo~\ref{chap:progettazione}.
+
+\subsection{Il supporto geospaziale preesistente}
+\label{subsec:alchemist-osm}
+
+Alchemist offre un supporto già maturo per simulazioni su cartografia
+reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap e collocare i
+nodi al suo interno, vincolandone il movimento a una rete stradale delegando il calcolo
+dei percorsi a GraphHopper. È questa asimmetria che fa nascere il problema affrontato in questa tesi:
+un simulatore capace di collocare e muovere con precisione i propri agenti nello spazio geografico reale, ma
+non dotato di un modo per esporre loro cosa vi stia accadendo.
+
+\subsection{Il caricamento delle simulazioni da YAML}
+\label{subsec:alchemist-loader}
+
+Le simulazioni Alchemist non si scrivono in codice: si dichiarano in file YAML, indicando
+per ciascun componente il nome della classe che lo implementa e i parametri con cui costruirlo.
+Ad esempio, il layer gaussiano introdotto in Sezione~\ref{subsec:alchemist-layer}, si dichiara così:
+
+\begin{lstlisting}[float,language=yaml]
+layers:
+  - type: BidimensionalGaussianLayer
+    parameters: [10, 10, 20, 8]
+\end{lstlisting}
+
+Questo meccanismo basato sulla riflessione è un vincolo: la sua analisi ha condizionato la forma
+di ogni classe foglia, la quale deve essere raggiungibile da YAML.
+Questo problema è trattato in dettaglio nel Capitolo~\ref{chap:progettazione}.
+
+% % % HERE 
+
 %----------------------------------------------------------------------------------------
 % BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
 
 \backmatter
-
-\nocite{*} % Remove this as soon as you have the first citation
 
 \bibliographystyle{alpha}
 \bibliography{bibliography}

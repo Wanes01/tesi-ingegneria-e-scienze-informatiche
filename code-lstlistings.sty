@@ -40,21 +40,16 @@
 }
 
 % yml colors
-\definecolor{yamlkey}{RGB}{0,0,180}
 \definecolor{yamlcomment}{RGB}{128,128,128}
 \definecolor{yamlstring}{RGB}{163,21,21}
 
 \lstdefinelanguage{yaml}{
   keywords={type, parameters, molecule, layers, environment, deployments,
             incarnation, network-model, contents, programs, terminate},
-  keywordstyle=\color{yamlkey}\bfseries,
   sensitive=true,
   comment=[l]{\#},
-  commentstyle=\color{yamlcomment}\ttfamily,
+  commentstyle=\color{yamlcomment},
   morestring=[b]',
   morestring=[b]",
   stringstyle=\color{yamlstring},
-  basicstyle=\ttfamily\small,
-  showstringspaces=false,
-  breaklines=true,
 }

@@ -1,0 +1,4 @@
+layers:
+  - type: BidimensionalGaussianLayer
+    molecule: moleculeName
+    parameters: [10, 10, 20, 8]

@@ -29,16 +29,11 @@ caricamento delle simulazioni da file YAML.
 \subsection{Il concetto di \emph{layer}}
 \label{subsec:alchemist-layer}
 
-Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione totale che associa a
+Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione che associa ad
 ogni posizione di tipo \texttt{P} dell'environment un valore di tipo \texttt{T}.
 L'interfaccia si riduce a un solo metodo:
 
-\begin{lstlisting}[language=Java]
-@FunctionalInterface
-interface Layer<T, P : Position<out P>?> : Serializable {
-    fun getValue(p: P): T
-}
-\end{lstlisting}
+\lstinputlisting[language=Java,label={lst:layer-interface}]{listings/Layer.java}
 
 Un nodo può quindi interrogare un layer con la propria posizione corrente e ottenere il
 valore che il layer associa a quel punto. Le implementazioni preesistenti in Alchemist
@@ -79,12 +74,7 @@ che indica, per ciascun componente, il nome della classe che lo implementa e i p
 con cui costruirlo. Il layer gaussiano introdotto nella
 Sezione~\ref{subsec:alchemist-layer} si dichiara così:
 
-\begin{lstlisting}[language=yaml]
-layers:
-  - type: BidimensionalGaussianLayer
-    molecule: moleculeName
-    parameters: [10, 10, 20, 8]
-\end{lstlisting}
+\lstinputlisting[language=YAML,label={lst:bidimensional-gaussian-layer}]{listings/bidimensional.yml}
 
 La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
 nell'environment, mentre \texttt{parameters} elenca posizionalmente gli argomenti del
@@ -132,12 +122,12 @@ I dataset offerti dai tre data store descritti precedentemente sono forniti,
 a seconda del dataset e della selezione effettuata in fase di richiesta, in due
 formati binari pensati per la memorizzazione di dati geospaziali multidimensionali
 campionati su una griglia: \ac{GRIB} e \ac{NetCDF}. Entrambi distribuiscono i valori
-di una grandezza fisica su assi di latitudine, longitudine e tempo, dove l'asse temporale
+di una o più grandezze fisiche su assi di latitudine, longitudine e tempo, dove l'asse temporale
 è una successione di istanti assoluti riferiti ad un calendario di riferimento.
 
 \begin{itemize}
 \item \ac{GRIB}, distribuito dai data store nelle versioni GRIB1 e GRIB2, è uno standard
-    binario definito dalla \ac{WMO}~\cite{wmo_manual_codes}, con l'obiettivo di
+    binario definito dalla \ac{WMO}, con l'obiettivo di
     trasmettere in modo efficiente i grandi volumi di dati prodotti dai modelli
     meteorologici. Un file \ac{GRIB} non è autosufficiente dal punto di vista semantico:
     la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
@@ -162,12 +152,19 @@ dataset forniti dai data store non è un caso raro: le misure di portata fluvial
 sono definite solo in corrispondenza dei corsi d'acqua, e lasciano prive di valore tutte
 le altre celle della griglia. In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
 l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
-un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.
+un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.~\cref{fig:netcdf-structure}
 In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
 la \emph{bitmap section}, che indica punto per punto della griglia se il valore
 corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono
 ricondotte a un'unica convenzione interna è
 discusso nel Capitolo~\ref{chap:implementazione}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=.8\linewidth]{figures/netcdf-file-structure.png}
+    \caption{Struttura di un file NetCDF.}
+    \label{fig:netcdf-structure}
+\end{figure}
 
 Un secondo aspetto, comune a entrambi i formati, riguarda la nozione di
 \emph{griglia raster}. Nella sua forma più diffusa, una griglia raster è

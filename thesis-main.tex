@@ -30,6 +30,8 @@
 \acrodef{EFAS}{European Flood Awareness System}
 \acrodef{GloFAS}{Global Flood Awareness System}
 \acrodef{CAMS}{Copernicus Atmosphere Monitoring Service}
+% OGC
+\acrodef{OGC}{Open Geospatial Consortium}
 
 \mainlinespacing{1.241} % line spacing in mainmatter, comment to default (1)
 
@@ -207,6 +209,34 @@ L'autenticazione verso i tre datastore avviene tramite un token \ac{ECMWF} unifi
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
 locale nel formato \texttt{.cdsapirc}\footnote{\url{https://cds.climate.copernicus.eu/how-to-api}},
 lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
+
+\section{Il paradigma OGC API Processes}
+\label{sec:ogc-api-processes}
+
+Le richieste di dati verso i tre datastore Copernicus sono operazioni di durata variabile,
+da qualche secondo a diverse decine di minuti in base all'entità della richiesta, e vengono quindi
+gestite in modo asincrono: il client sottomette una richiesta, riceve
+l'identificativo di un job e ne interroga periodicamente lo stato fino al suo completamento.
+
+Lo schema delle elaborazioni geospaziali via web è descritto, a livello di standard, da \ac{OGC} in ``OGC API - Processes - Part 1: Core"\cite{ogc_api_processes_core}.
+Lo standard definisce il ciclo di vita di un job
+attraverso tre fasi: sottomissione, interrogazione dello stato, recupero dei risultati ed un
+insieme di stati che il job può assumere durante l'elaborazione.
+
+La navigazione fra le fasi segue un approccio ipermediale: ogni risposta espone un array
+\texttt{links} di collegamenti tipizzati tramite una relazione (\texttt{rel}), fra cui
+\texttt{rel="monitor"} per il collegamento allo stato del job e \texttt{rel="results"} per il
+collegamento ai risultati, esposto una volta che il job raggiunge uno stato terminale.
+Lo standard raccomanda di seguire questi collegamenti invece di
+ricostruire autonomamente gli URL a partire dall'identificativo del job.
+%TODO: vedi dove collocare questo pezzo
+\textbf{(NOTA PER ME: forse quest'ultima frase è meglio metterla in progettazione/implementazione)}
+
+Per gli errori, lo standard rimanda al formato RFC 7807~\cite{rfc7807},
+che uniforma il corpo di una risposta di errore.
+Successivamente, nei capitoli di Progettazione e Implementazione, si discuterà nel dettaglio
+in che misura il comportamento dei tre datastore \ac{ECMWF} aderisca e in che misura si discosti
+da questo standard.
 
 %----------------------------------------------------------------------------------------
 % BIBLIOGRAPHY

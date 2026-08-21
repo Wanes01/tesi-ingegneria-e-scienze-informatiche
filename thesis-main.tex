@@ -21,7 +21,15 @@
 % Definition of acronyms
 \acrodef{IoT}{Internet of Thing}
 \acrodef{vm}[VM]{Virtual Machine}
-
+% Copernicus
+\acrodef{ECMWF}{European Centre for Medium-Range Weather Forecasts}
+\acrodef{CEMS}{Copernicus Emergency Management Service}
+\acrodef{CDS}{Climate Data Store}
+\acrodef{EWDS}{Early Warning Data Store}
+\acrodef{ADS}{Atmosphere Data Store}
+\acrodef{EFAS}{European Flood Awareness System}
+\acrodef{GloFAS}{Global Flood Awareness System}
+\acrodef{CAMS}{Copernicus Atmosphere Monitoring Service}
 
 \mainlinespacing{1.241} % line spacing in mainmatter, comment to default (1)
 
@@ -127,7 +135,7 @@ Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione continua nell
 che associa alle posizioni di tipo \texttt{P} dell'environment un valore \texttt{T}.
 La sua interfaccia si riduce a un solo metodo:
 
-\begin{lstlisting}[float,language=Java]
+\begin{lstlisting}[language=Java]
 T getValue(P position);
 \end{lstlisting}
 
@@ -168,7 +176,7 @@ Le simulazioni Alchemist non si scrivono in codice: si dichiarano in file YAML, 
 per ciascun componente il nome della classe che lo implementa e i parametri con cui costruirlo.
 Ad esempio, il layer gaussiano introdotto in Sezione~\ref{subsec:alchemist-layer}, si dichiara così:
 
-\begin{lstlisting}[float,language=yaml]
+\begin{lstlisting}[language=yaml]
 layers:
   - type: BidimensionalGaussianLayer
     parameters: [10, 10, 20, 8]
@@ -178,7 +186,27 @@ Questo meccanismo basato sulla riflessione è un vincolo: la sua analisi ha cond
 di ogni classe foglia, la quale deve essere raggiungibile da YAML.
 Questo problema è trattato in dettaglio nel Capitolo~\ref{chap:progettazione}.
 
-% % % HERE 
+\section{Il programma Copernicus e i suoi servizi di dati}
+\label{sec:copernicus}
+
+Copernicus è il programma di osservazione della Terra dell'Unione Europea.
+Al suo interno, il \ac{CEMS}\footnote{\url{https://emergency.copernicus.eu/}}
+fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di protezione civile,
+ed è il servizio da cui ha preso avvio il progetto descritto in questa tesi.
+L'accesso ai dati avviene attraverso tre datastore distinti, tutti gestiti
+dall'\ac{ECMWF} e basati sulla stessa infrastruttura software,
+differenziati per host e per il dominio dei dataset che espongono:
+
+\begin{itemize}
+    \item \ac{CDS}, che ospita dataset climatici quali ERA5, dati di rianalisi climatica globale;
+    \item \ac{EWDS}, che ospita i dataset di \ac{EFAS} e \ac{GloFAS}, i sistemi di allerta alluvionale rispettivamente a scala europea e globale;
+    \item \ac{ADS}, che ospita i dataset del \ac{CAMS}, relativi a composizione atmosferica, qualità dell'aria, gas serra e radiazione solare;
+\end{itemize}
+
+L'autenticazione verso i tre datastore avviene tramite un token \ac{ECMWF} unificato:
+la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
+locale nel formato \texttt{.cdsapirc}\footnote{\url{https://cds.climate.copernicus.eu/how-to-api}},
+lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
 
 %----------------------------------------------------------------------------------------
 % BIBLIOGRAPHY

@@ -1,0 +1,211 @@
+\chapter{Contesto}
+\label{chap:contesto}
+
+Questo capitolo introduce gli elementi tecnici necessari a comprendere le scelte
+discusse nei capitoli successivi: il simulatore Alchemist, il programma Copernicus e i
+suoi data store, i formati e le convenzioni con cui i dati geospaziali raster vengono distribuiti,
+e il paradigma su cui si basano le richieste asincrone verso i data store.
+
+\section{Il simulatore Alchemist}
+\label{sec:alchemist}
+
+Alchemist~\cite{alchemist} è un simulatore di sistemi complessi, scritto in Java e
+Kotlin, nato alla fine del 2010 come sottoprodotto del progetto europeo SAPERE e
+mantenuto da allora come progetto open source da Danilo Pianini e collaboratori presso
+il Dipartimento di Informatica dell'Università di Bologna.
+
+In Alchemist una simulazione è composta da un \emph{environment}, lo spazio in cui
+vivono i \emph{nodi}. Ciascun nodo è un contenitore di \emph{molecole} (identificatori,
+l'equivalente di un nome di variabile) a cui sono associate \emph{concentrazioni},
+i valori che esse assumono, e di \emph{reazioni}, gli eventi che ne modificano lo stato
+nel tempo.\footnote{Il metamodello di Alchemist:
+\url{https://alchemistsimulator.github.io/explanation/metamodel/}}
+
+Le sezioni che seguono si limitano agli elementi necessari a collocare il lavoro
+descritto in questa tesi: la nozione di layer, il modo in cui il tempo di simulazione è
+reso accessibile ai componenti, il supporto geospaziale già disponibile e il sistema di
+caricamento delle simulazioni da file YAML.
+
+\subsection{Il concetto di \emph{layer}}
+\label{subsec:alchemist-layer}
+
+Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione totale che associa a
+ogni posizione di tipo \texttt{P} dell'environment un valore di tipo \texttt{T}.
+L'interfaccia si riduce a un solo metodo:
+
+\begin{lstlisting}[language=Java]
+@FunctionalInterface
+interface Layer<T, P : Position<out P>?> : Serializable {
+    fun getValue(p: P): T
+}
+\end{lstlisting}
+
+Un nodo può quindi interrogare un layer con la propria posizione corrente e ottenere il
+valore che il layer associa a quel punto. Le implementazioni preesistenti in Alchemist
+realizzano tutte layer sintetici (ad esempio \texttt{BidimensionalGaussianLayer},
+una distribuzione gaussiana bidimensionale centrata su un punto) non adatti a dati misurati,
+distribuiti in formati specialistici e campionati su griglie irregolari nello spazio e nel tempo.
+
+\subsection{Il tempo di simulazione}
+\label{subsec:alchemist-time}
+
+Alchemist rappresenta il tempo corrente di una simulazione come un valore scalare di tipo
+\texttt{Time}, privo di un'unità di misura intrinseca: la sua interpretazione è una convenzione
+lasciata al modellista della simulazione (ad esempio secondi, ore, giorni), non
+un vincolo imposto dal simulatore. Un nodo, o un componente che condivide la stessa esigenza
+percettiva, come un layer (Sezione~\ref{subsec:alchemist-layer}), può interrogare
+la \texttt{Simulation}, una proprietà dell'environment, per ottenerlo, con la possibilità
+che tale informazione non sia ancora
+disponibile in nelle fasi iniziali del ciclo di vita di una simulazione. 
+Le conseguenze di questo vincolo sul design sono discusse nel
+Capitolo~\ref{chap:progettazione}.
+
+\subsection{Il supporto geospaziale preesistente}
+\label{subsec:alchemist-osm}
+
+Alchemist offre un supporto già maturo per simulazioni su cartografia
+reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap e collocare i
+nodi al suo interno, vincolandone il movimento a una rete stradale delegando il calcolo
+dei percorsi a GraphHopper. Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
+latitudine e longitudine. È questa asimmetria che fa nascere il problema affrontato in questa tesi:
+un simulatore capace di collocare e muovere con precisione i propri agenti nello spazio geografico reale, ma
+non dotato di un modo per esporre loro cosa vi stia accadendo.
+
+\subsection{Il caricamento delle simulazioni da YAML}
+\label{subsec:alchemist-loader}
+
+Una simulazione Alchemist si specifica tipicamente in modo dichiarativo, in un file YAML
+che indica, per ciascun componente, il nome della classe che lo implementa e i parametri
+con cui costruirlo. Il layer gaussiano introdotto nella
+Sezione~\ref{subsec:alchemist-layer} si dichiara così:
+
+\begin{lstlisting}[language=yaml]
+layers:
+  - type: BidimensionalGaussianLayer
+    molecule: moleculeName
+    parameters: [10, 10, 20, 8]
+\end{lstlisting}
+
+La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
+nell'environment, mentre \texttt{parameters} elenca posizionalmente gli argomenti del
+costruttore. Questo meccanismo, basato sulla riflessione, non è un semplice dettaglio di
+configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
+a essere istanziata da YAML, e sono analizzati nel Capitolo~\ref{chap:progettazione}.
+
+\section{Il programma Copernicus e i suoi servizi di dati}
+\label{sec:copernicus}
+
+Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
+servizi tematici. Fra questi, il \ac{CEMS}\footnote{\url{https://emergency.copernicus.eu/}}
+fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
+protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa
+tesi.
+
+L'accesso programmatico ai dati non è però organizzato per servizio: avviene attraverso
+una famiglia di \emph{data store} gestiti dall'\ac{ECMWF} e costruiti sulla stessa
+infrastruttura software, differenziati per host e per il dominio dei dataset che
+espongono:
+
+\begin{itemize}
+    \item il \ac{CDS}, data store del \ac{C3S}, che ospita fra gli altri ERA5, la
+    rianalisi climatica globale prodotta da \ac{ECMWF};
+    \item l'\ac{EWDS}, data store del \ac{CEMS}, che ospita i dataset di \ac{EFAS} e
+    \ac{GloFAS}, sistemi di allerta alluvionale rispettivamente a scala europea e
+    globale, e quelli relativi agli incendi boschivi;
+    \item l'\ac{ADS}, data store del \ac{CAMS}, relativo a composizione atmosferica,
+    qualità dell'aria, gas serra e radiazione solare.
+\end{itemize}
+
+Che i tre condividono la stessa infrastruttura, per cui un unico
+client è sufficiente a interrogarli tutti, e la differenza si riduce all'host e al
+catalogo dei dataset disponibili.
+
+L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
+la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
+locale nel formato \texttt{.cdsapirc}\footnote{\url{https://cds.climate.copernicus.eu/how-to-api}},
+lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
+
+\section{Formati e convenzioni per dati raster geospaziali}
+\label{sec:formati-raster}
+
+I dataset offerti dai tre data store descritti precedentemente sono forniti,
+a seconda del dataset e della selezione effettuata in fase di richiesta, in due
+formati binari pensati per la memorizzazione di dati geospaziali multidimensionali
+campionati su una griglia: \ac{GRIB} e \ac{NetCDF}. Entrambi distribuiscono i valori
+di una grandezza fisica su assi di latitudine, longitudine e tempo, dove l'asse temporale
+è una successione di istanti assoluti riferiti ad un calendario di riferimento.
+
+\begin{itemize}
+\item \ac{GRIB}, distribuito dai data store nelle versioni GRIB1 e GRIB2, è uno standard
+    binario definito dalla \ac{WMO}~\cite{wmo_manual_codes}, con l'obiettivo di
+    trasmettere in modo efficiente i grandi volumi di dati prodotti dai modelli
+    meteorologici. Un file \ac{GRIB} non è autosufficiente dal punto di vista semantico:
+    la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
+    definito da tabelle esterne, standard o specifiche del centro meteorologico di
+    origine. Ad esempio, nella tabella 128 di \ac{ECMWF} il codice 167 identifica la
+    temperatura registrata a due metri dal suolo, ma la corrispondenza fra codice e
+    grandezza fisica non è ricavabile dal solo contenuto del file;
+\item \ac{NetCDF}, distribuito dai data store nelle versioni NetCDF3 e NetCDF4, è un formato
+    sviluppato e mantenuto da Unidata, un programma comunitario dell'\ac{UCAR},
+    orientato all'accesso e alla condivisione di dati scientifici
+    multidimensionali. A differenza di \ac{GRIB}, un file \ac{NetCDF} è
+    auto-descrittivo: nomi delle variabili, unità di misura e altri metadati
+    sono incorporati nel file stesso. Il formato di per sé impone però una
+    struttura minima; per questo la comunità scientifica ha definito
+    convenzioni che ne regolano il contenuto: nome e ordine delle dimensioni,
+    attributi obbligatori, semantica degli assi. La più diffusa, ed adottata
+    dagli store di riferimento, è la convenzione \ac{CF}~\cite{cf_conventions}.
+\end{itemize}
+
+Un aspetto comune ai due formati riguarda la rappresentazione dei valori mancanti, che nei
+dataset forniti dai data store non è un caso raro: le misure di portata fluviale, ad esempio,
+sono definite solo in corrispondenza dei corsi d'acqua, e lasciano prive di valore tutte
+le altre celle della griglia. In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
+l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
+un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.
+In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
+la \emph{bitmap section}, che indica punto per punto della griglia se il valore
+corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono
+ricondotte a un'unica convenzione interna è
+discusso nel Capitolo~\ref{chap:implementazione}.
+
+Un secondo aspetto, comune a entrambi i formati, riguarda la nozione di
+\emph{griglia raster}. Nella sua forma più diffusa, una griglia raster è
+definita dal prodotto cartesiano di un asse di latitudini e uno di longitudini,
+indipendenti fra loro: ogni cella è quindi individuabile con una coppia di
+coordinate geografiche. Questa non è però l'unica struttura possibile.
+Alcuni dei dataset distribuiti dai data store sono definiti su una griglia nativa espressa in
+una proiezione cartografica, ad esempio \ac{LAEA}, non riconducibile al prodotto
+cartesiano di due assi indipendenti di latitudine e longitudine.
+
+Un punto rilevante, con conseguenze dirette sulle scelte implementative
+discusse nel Capitolo~\ref{chap:implementazione}, riguarda la spaziatura degli
+assi: le varie convenzioni richiedono che latitudine e longitudine siano
+strettamente monotone, ma non che siano equispaziate.
+
+\section{Il paradigma OGC API Processes}
+\label{sec:ogc-api-processes}
+
+Le richieste di dati verso i tre data store Copernicus sono operazioni di durata variabile,
+da qualche secondo a diverse decine di minuti in base all'entità della richiesta, e vengono quindi
+gestite in modo asincrono: il client sottomette una richiesta, riceve
+l'identificativo di un job e ne interroga periodicamente lo stato fino al suo completamento.
+
+Lo schema è descritto, a livello di standard, da \ac{OGC} in \emph{OGC API - Processes
+- Part 1: Core}~\cite{ogc_api_processes_core}. Lo standard definisce il ciclo di vita di
+un job attraverso tre fasi: sottomissione, interrogazione dello stato e recupero dei
+risultati, oltre a definire un insieme di stati che il job attraversa durante l'elaborazione.
+
+La navigazione fra le fasi segue un approccio ipermediale: ogni risposta espone un array
+\texttt{links} di collegamenti tramite una relazione (\texttt{rel}), fra cui
+\texttt{rel="monitor"} per lo stato del job e \texttt{rel="results"} per i risultati,
+esposto una volta che il job raggiunge uno stato terminale. Lo standard raccomanda di
+seguire questi collegamenti invece di ricostruire autonomamente gli URL a partire
+dall'identificativo del job.
+
+Per gli errori, lo standard rimanda al formato definito dalla RFC 7807~\cite{rfc7807},
+che uniforma il corpo delle risposte di errore.
+
+In che misura il comportamento effettivo dei data store \ac{ECMWF} aderisca a questo
+standard, e in che misura se ne discosti, è discusso nei
+Capitoli~\ref{chap:progettazione} e~\ref{chap:implementazione}.

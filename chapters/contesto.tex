@@ -51,7 +51,7 @@ un vincolo imposto dal simulatore. Un nodo, o un componente che condivide la ste
 percettiva, come un layer (Sezione~\ref{subsec:alchemist-layer}), può interrogare
 la \texttt{Simulation}, una proprietà dell'environment, per ottenerlo, con la possibilità
 che tale informazione non sia ancora
-disponibile in nelle fasi iniziali del ciclo di vita di una simulazione. 
+disponibile nelle fasi iniziali del ciclo di vita di una simulazione. 
 Le conseguenze di questo vincolo sul design sono discusse nel
 Capitolo~\ref{chap:progettazione}.
 
@@ -106,7 +106,7 @@ espongono:
     qualità dell'aria, gas serra e radiazione solare.
 \end{itemize}
 
-Che i tre condividono la stessa infrastruttura, per cui un unico
+I tre condividono la stessa infrastruttura, per cui un unico
 client è sufficiente a interrogarli tutti, e la differenza si riduce all'host e al
 catalogo dei dataset disponibili.
 
@@ -123,7 +123,8 @@ a seconda del dataset e della selezione effettuata in fase di richiesta, in due
 formati binari pensati per la memorizzazione di dati geospaziali multidimensionali
 campionati su una griglia: \ac{GRIB} e \ac{NetCDF}. Entrambi distribuiscono i valori
 di una o più grandezze fisiche su assi di latitudine, longitudine e tempo, dove l'asse temporale
-è una successione di istanti assoluti riferiti ad un calendario di riferimento.
+è una successione di istanti assoluti associati ad un calendario di riferimento. Nel
+dettaglio:
 
 \begin{itemize}
 \item \ac{GRIB}, distribuito dai data store nelle versioni GRIB1 e GRIB2, è uno standard
@@ -153,6 +154,7 @@ sono definite solo in corrispondenza dei corsi d'acqua, e lasciano prive di valo
 le altre celle della griglia. In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
 l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
 un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.~\cref{fig:netcdf-structure}
+
 In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
 la \emph{bitmap section}, che indica punto per punto della griglia se il valore
 corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono

@@ -5,6 +5,7 @@
 \usepackage{notes}
 \usepackage{shortcuts}
 \usepackage{acronym}
+\usepackage{float}
 
 \school{\unibo}
 \programme{Corso di Laurea in Ingegneria e Scienze Informatiche}
@@ -46,9 +47,9 @@
 
 \frontmatter\frontispiece
 
-\begin{abstract}	
-Max 2000 characters, strict.
-\end{abstract}
+%\begin{abstract}	
+%Max 2000 characters, strict.
+%\end{abstract}
 
 %\begin{dedication} % this is optional
 %Optional. Max a few lines.
@@ -63,8 +64,8 @@ Max 2000 characters, strict.
 \mainmatter
 
 %----------------------------------------------------------------------------------------
-\chapter{Introduzione}
-\label{chap:introduction}
+%\chapter{Introduzione}
+%\label{chap:introduction}
 %----------------------------------------------------------------------------------------
 
 %\sidenote{Add sidenotes in this way. They are named after the author of the thesis}
@@ -72,13 +73,19 @@ Max 2000 characters, strict.
 %ou may need both \ac{vm} and \acp{vm}.
 %\note{At the end, describe the structure of the paper}
 
-\paragraph{Structure of the Thesis}
+%\paragraph{Structure of the Thesis}
 
 %----------------------------------------------------------------------------------------
 % CAPITOLO 2 (CONTESTO)
 %----------------------------------------------------------------------------------------
 
 \include{chapters/contesto}
+
+%----------------------------------------------------------------------------------------
+% CAPITOLO 3 (ANALISI)
+%----------------------------------------------------------------------------------------
+
+\include{chapters/analisi}
 
 %----------------------------------------------------------------------------------------
 % BIBLIOGRAPHY
@@ -89,8 +96,8 @@ Max 2000 characters, strict.
 \bibliographystyle{alpha}
 \bibliography{bibliography}
 
-\begin{acknowledgements} % this is optional
-Optional. Max 1 page.
-\end{acknowledgements}
+%\begin{acknowledgements} % this is optional
+%Optional. Max 1 page.
+%\end{acknowledgements}
 
 \end{document}

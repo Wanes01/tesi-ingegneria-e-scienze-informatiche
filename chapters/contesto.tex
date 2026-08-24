@@ -1,11 +1,6 @@
 \chapter{Contesto}
 \label{chap:contesto}
 
-Questo capitolo introduce gli elementi tecnici necessari a comprendere le scelte
-discusse nei capitoli successivi: il simulatore Alchemist, il programma Copernicus e i
-suoi data store, i formati e le convenzioni con cui i dati geospaziali raster vengono distribuiti,
-e il paradigma su cui si basano le richieste asincrone verso i data store.
-
 \section{Il simulatore Alchemist}
 \label{sec:alchemist}
 
@@ -35,7 +30,8 @@ L'interfaccia si riduce a un solo metodo:
 
 \lstinputlisting[language=Java,label={lst:layer-interface}]{listings/Layer.java}
 
-Un nodo può quindi interrogare un layer con la propria posizione corrente e ottenere il
+Un nodo può quindi interrogare un layer con
+la propria posizione corrente e ottenere il
 valore che il layer associa a quel punto. Le implementazioni preesistenti in Alchemist
 realizzano tutte layer sintetici (ad esempio \texttt{BidimensionalGaussianLayer},
 una distribuzione gaussiana bidimensionale centrata su un punto) non adatti a dati misurati,
@@ -52,8 +48,8 @@ percettiva, come un layer (Sezione~\ref{subsec:alchemist-layer}), può interroga
 la \texttt{Simulation}, una proprietà dell'environment, per ottenerlo, con la possibilità
 che tale informazione non sia ancora
 disponibile nelle fasi iniziali del ciclo di vita di una simulazione. 
-Le conseguenze di questo vincolo sul design sono discusse nel
-Capitolo~\ref{chap:progettazione}.
+%Le conseguenze di questo vincolo sul design sono discusse nel
+%Capitolo~\ref{chap:progettazione}.
 
 \subsection{Il supporto geospaziale preesistente}
 \label{subsec:alchemist-osm}
@@ -80,13 +76,13 @@ La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
 nell'environment, mentre \texttt{parameters} elenca posizionalmente gli argomenti del
 costruttore. Questo meccanismo, basato sulla riflessione, non è un semplice dettaglio di
 configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
-a essere istanziata da YAML, e sono analizzati nel Capitolo~\ref{chap:progettazione}.
+a essere istanziata da YAML. %, e sono analizzati nel Capitolo~\ref{chap:progettazione}.
 
 \section{Il programma Copernicus e i suoi servizi di dati}
 \label{sec:copernicus}
 
 Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
-servizi tematici. Fra questi, il \ac{CEMS}\footnote{\url{https://emergency.copernicus.eu/}}
+servizi tematici. Fra questi, il \ac{CEMS} %\footnote{\url{https://emergency.copernicus.eu/}}
 fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
 protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa
 tesi.
@@ -112,7 +108,7 @@ catalogo dei dataset disponibili.
 
 L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
-locale nel formato \texttt{.cdsapirc}\footnote{\url{https://cds.climate.copernicus.eu/how-to-api}},
+locale nel formato \texttt{.cdsapirc}\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
 lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
 
 \section{Formati e convenzioni per dati raster geospaziali}
@@ -134,7 +130,8 @@ dettaglio:
     la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
     definito da tabelle esterne, standard o specifiche del centro meteorologico di
     origine. Ad esempio, nella tabella 128 di \ac{ECMWF} il codice 167 identifica la
-    temperatura registrata a due metri dal suolo, ma la corrispondenza fra codice e
+    temperatura registrata a due metri dal suolo\footnote{Tabella ECMWF per i file GRIB che esprimono la temperatura a due metri dal suolo: \url{https://codes.ecmwf.int/grib/param-db/167}},
+    ma la corrispondenza fra codice e
     grandezza fisica non è ricavabile dal solo contenuto del file;
 \item \ac{NetCDF}, distribuito dai data store nelle versioni NetCDF3 e NetCDF4, è un formato
     sviluppato e mantenuto da Unidata, un programma comunitario dell'\ac{UCAR},
@@ -145,28 +142,29 @@ dettaglio:
     struttura minima; per questo la comunità scientifica ha definito
     convenzioni che ne regolano il contenuto: nome e ordine delle dimensioni,
     attributi obbligatori, semantica degli assi. La più diffusa, ed adottata
-    dagli store di riferimento, è la convenzione \ac{CF}~\cite{cf_conventions}.
+    dagli store di riferimento, è la convenzione \ac{CF}~\cite{cf_conventions}, \cref{fig:netcdf-structure}.
 \end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/netcdf-file-structure.png}
+    \caption[Struttura \ac{CF} di un file NetCDF]{Struttura \ac{CF} di un file NetCDF. Immagine tratta da \cite{simulating_complexity_netcdf}.}
+    \label{fig:netcdf-structure}
+\end{figure}
 
 Un aspetto comune ai due formati riguarda la rappresentazione dei valori mancanti, che nei
 dataset forniti dai data store non è un caso raro: le misure di portata fluviale, ad esempio,
 sono definite solo in corrispondenza dei corsi d'acqua, e lasciano prive di valore tutte
-le altre celle della griglia. In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
-l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
-un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.~\cref{fig:netcdf-structure}
+le altre celle della griglia. 
+%In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
+%l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
+%un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.~\cref{fig:netcdf-structure}
 
-In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
-la \emph{bitmap section}, che indica punto per punto della griglia se il valore
-corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono
-ricondotte a un'unica convenzione interna è
-discusso nel Capitolo~\ref{chap:implementazione}.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=.8\linewidth]{figures/netcdf-file-structure.png}
-    \caption{Struttura di un file NetCDF.}
-    \label{fig:netcdf-structure}
-\end{figure}
+%In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
+%la \emph{bitmap section}, che indica punto per punto della griglia se il valore
+%corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono
+%ricondotte a un'unica convenzione interna è
+%discusso nel Capitolo~\ref{chap:implementazione}.
 
 Un secondo aspetto, comune a entrambi i formati, riguarda la nozione di
 \emph{griglia raster}. Nella sua forma più diffusa, una griglia raster è
@@ -177,8 +175,9 @@ Alcuni dei dataset distribuiti dai data store sono definiti su una griglia nativ
 una proiezione cartografica, ad esempio \ac{LAEA}, non riconducibile al prodotto
 cartesiano di due assi indipendenti di latitudine e longitudine.
 
-Un punto rilevante, con conseguenze dirette sulle scelte implementative
-discusse nel Capitolo~\ref{chap:implementazione}, riguarda la spaziatura degli
+Un punto rilevante, con conseguenze dirette sulle scelte implementative,
+%discusse nel Capitolo~\ref{chap:implementazione},
+riguarda la spaziatura degli
 assi: le varie convenzioni richiedono che latitudine e longitudine siano
 strettamente monotone, ma non che siano equispaziate.
 
@@ -208,3 +207,4 @@ che uniforma il corpo delle risposte di errore.
 In che misura il comportamento effettivo dei data store \ac{ECMWF} aderisca a questo
 standard, e in che misura se ne discosti, è discusso nei
 Capitoli~\ref{chap:progettazione} e~\ref{chap:implementazione}.
+\emph{\textbf{("??" sono i link ai capitoli di progettazione e implementazione, attualmente assenti)}}

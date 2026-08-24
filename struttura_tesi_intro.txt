@@ -1,0 +1,5 @@
+## CONTESTO
+Questo capitolo introduce gli elementi tecnici necessari a comprendere le scelte
+discusse nei capitoli successivi: il simulatore Alchemist, il programma Copernicus e i
+suoi data store, i formati e le convenzioni con cui i dati geospaziali raster vengono distribuiti,
+e il paradigma su cui si basano le richieste asincrone verso i data store.

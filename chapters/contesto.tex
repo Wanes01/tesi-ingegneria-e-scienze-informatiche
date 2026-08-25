@@ -178,10 +178,15 @@ una proiezione cartografica, ad esempio \ac{LAEA}, non riconducibile al prodotto
 cartesiano di due assi indipendenti di latitudine e longitudine.
 
 Un punto rilevante, con conseguenze dirette sulle scelte implementative,
-%discusse nel Capitolo~\ref{chap:implementazione},
-riguarda la spaziatura degli
-assi: le varie convenzioni richiedono che latitudine e longitudine siano
-strettamente monotone, ma non che siano equispaziate.
+riguarda la spaziatura degli assi. La convenzione \ac{CF} richiede che
+latitudine e longitudine siano strettamente monotone, ma non equispaziate, e
+il vincolo non è più stringente sull'asse temporale: un dataset può
+contenere misurazioni ad intervalli di tempo non regolari.
+Nel caso di \ac{GRIB} la questione non si pone nemmeno in
+termini di convenzione, dal momento che un file è una successione di
+griglie indipendenti, ciascuno con il proprio istante di validità: nulla
+nel formato impone che l'insieme risultante sia ordinato, né tantomeno
+regolare.
 
 \section{Il paradigma OGC API Processes}
 \label{sec:ogc-api-processes}

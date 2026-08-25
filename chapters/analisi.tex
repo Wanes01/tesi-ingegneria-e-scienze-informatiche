@@ -134,7 +134,7 @@ da una simulazione dipende da una convenzione scelta dal modellista, per cui
 eccedere la finestra coperta dai dati è un'eventualità possibile che dovrebbe
 esporre l'ultimo istante disponibile.
 
-\subsection{Geometrie di griglia supportate}
+\subsection{Griglie e serie temporali supportate}
 \label{subsec:griglie-supportate}
 
 Come osservato nella Sezione~\ref{sec:formati-raster}, non tutte le griglie distribuite
@@ -150,6 +150,11 @@ Il lavoro si limita quindi alle griglie
 i cui assi di latitudine e longitudine sono indipendenti e monotoni,
 non necessariamente a passo costante, escludendo i dataset distribuiti
 su proiezioni native.
+
+Sul dominio temporale non viene invece posto alcun vincolo:
+è sufficiente che gli istanti della serie siano distinti e
+ordinati, mentre l'ampiezza degli intervalli che li separano può
+variare lungo la serie.
 
 \subsection{Estrazioni cartografiche escluse dal perimetro}
 \label{subsec:bbbike-fuori-perimetro}

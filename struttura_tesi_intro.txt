@@ -3,3 +3,9 @@ Questo capitolo introduce gli elementi tecnici necessari a comprendere le scelte
 discusse nei capitoli successivi: il simulatore Alchemist, il programma Copernicus e i
 suoi data store, i formati e le convenzioni con cui i dati geospaziali raster vengono distribuiti,
 e il paradigma su cui si basano le richieste asincrone verso i data store.
+
+### ANALISI
+Questo capitolo analizza il problema affrontato dalla tesi, ne ricostruisce il perimetro,
+esamina la relazione fra il tempo di simulazione e il tempo del mondo reale, e da tutto
+questo deriva i requisiti funzionali e non funzionali e il modello del dominio che ne
+risulta.

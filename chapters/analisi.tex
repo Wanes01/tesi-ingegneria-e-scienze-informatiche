@@ -1,0 +1,322 @@
+\chapter{Analisi}
+\label{chap:analisi}
+
+\section{Analisi del problema}
+\label{sec:analisi-problema}
+
+Come anticipato nella Sezione~\ref{subsec:alchemist-osm}, il supporto geospaziale di
+Alchemist consente di collocare e muovere con precisione gli agenti di una simulazione su
+cartografia reale, ma non offre un modo altrettanto maturo per esporre loro cosa stia
+accadendo, in un dato istante, nel punto dello spazio geografico in cui si trovano.
+L'interfaccia \texttt{Layer<T, P>} (Sezione~\ref{subsec:alchemist-layer}) è generica sia
+nella posizione \texttt{P} sia nel valore \texttt{T} restituito, ma nessuna delle sue
+implementazioni preesistenti espone dati che rappresentino misurazioni del mondo reale.
+
+I dati geospaziali misurati, quali quelli distribuiti dai data store Copernicus descritti
+nella Sezione~\ref{sec:copernicus}, differiscono dai valori sintetici prodotti dalle
+implementazioni preesistenti per diversi aspetti. Ciascuno di essi riguarda il modo in cui il
+valore \texttt{T} restituito da \texttt{getValue} debba essere prodotto, non la forma
+dell'interfaccia \texttt{Layer<T, P>} in sé:
+
+\begin{itemize}
+    \item sono distribuiti in un formato specialistico (\ac{NetCDF} o \ac{GRIB},
+    Sezione~\ref{sec:formati-raster}), il cui schema (quali dimensioni compaiano, in quale
+    ordine, con quale direzione degli assi, con quale nome interno la grandezza di interesse
+    sia identificata) non è fissato a priori, ma varia da dataset a dataset;
+    \item sono campionati su una griglia sia nello spazio sia nel tempo, mentre la
+    posizione richiesta a un layer e l'istante di simulazione corrente sono entrambi
+    quantità continue: fra un campione e l'altro non esiste, nel dato
+    originale, alcun valore, e va quindi stabilita una regola per produrne uno;
+    \item non tutte le celle di una griglia riportano una misura: i formati prevedono un
+    valore convenzionale per quelle che ne sono prive, siano esse escluse dal dominio del
+    modello o semplicemente mancanti;
+    \item non risiedono in memoria né sono calcolabili localmente, ma vanno ottenuti da un
+    servizio remoto che risponde in modo asincrono, secondo il paradigma descritto nella
+    Sezione~\ref{sec:ogc-api-processes}, senza garanzia di completamento della richiesta.
+\end{itemize}
+
+Questi aspetti individuano i seguenti sotto-problemi:
+
+\begin{description}
+    \item[Rappresentazione] come rappresentare in memoria, in modo indipendente dalla fonte
+    specifica del dato, una serie temporale di griglie raster geospaziali, le cui celle possono
+    non ospitare una misurazione;
+    \item[Risoluzione] date una posizione geografica e un istante di simulazione arbitrari, come produrre
+    un valore a partire da campioni discreti nello spazio e nel tempo, con possibili misurazioni mancanti;
+    \item[Acquisizione] come ottenere questi campioni da un servizio remoto asincrono, in modo
+    riproducibile e verificabile, senza doverli riscaricare ad ogni esecuzione della
+    simulazione.
+\end{description}
+
+La scomposizione è resa possibile dal fatto che i tre sotto-problemi sono debolmente
+accoppiati fra loro. La rappresentazione di una serie di griglie non deve sapere se i dati
+provengano da un data store o siano stati posti a mano sul disco; la risoluzione di un
+valore in un punto e un istante arbitrari non deve sapere da dove le griglie provengano,
+ma solo che siano disponibili; l'acquisizione, viceversa, non deve sapere come i dati
+acquisiti verranno successivamente letti o interpolati. L'unico punto di contatto fra
+acquisizione e rappresentazione è la forma in cui i dati vengono consegnati, ovvero un
+insieme di file in uno dei formati descritti nella Sezione~\ref{sec:formati-raster};
+fissata questa, le tre parti possono essere progettate, realizzate e verificate in modo
+indipendente.
+
+\section{Obiettivi e perimetro del lavoro}
+\label{sec:perimetro}
+
+Il lavoro si concentra sui tre sotto-problemi individuati:
+un layer geospaziale che espone una serie temporale di griglie raster,
+con la regola di risoluzione dei campioni configurabile, e un sottosistema in grado di
+ottenere autonomamente i dati dai data store Copernicus. Le sottosezioni che seguono
+ricostruiscono le decisioni che hanno delimitato tale estensione.
+
+\subsection{Layer in sola lettura}
+\label{subsec:layer-sola-lettura}
+
+Il valore restituito da un layer geospaziale che espone dati misurati può, in linea di
+principio, cambiare in due modi distinti: perché il tempo di simulazione avanza e il layer
+legge un istante diverso di una serie di dati già disponibile,
+oppure perché il dato sottostante stesso viene
+aggiornato in modo esterno durante l'esecuzione. Il primo caso non pone problemi
+particolari: la lettura resta funzione della sola posizione richiesta e del tempo di
+simulazione corrente. Il secondo, viceversa, richiederebbe un layer mutabile durante
+l'esecuzione, il quale è a sua volta subordinato a una revisione del motore reattivo di
+Alchemist non ancora disponibile.
+
+Il layer sviluppato è, di conseguenza, di sola lettura: la serie di dati che espone è
+fissata al momento della costruzione e non muta per l'intera durata della simulazione.
+Restano fuori dal perimetro i fenomeni il cui dato di riferimento viene aggiornato nel
+corso dell'esecuzione.
+
+\subsection{Semantica di interrogazione del layer}
+\label{subsec:layer-pull-based}
+
+Una possibile alternativa progettuale avrebbe affidato a una reazione dedicata 
+il compito di avanzare esplicitamente lo stato del layer, in sincronia
+con l'avanzamento del tempo di simulazione: ad ogni esecuzione, la reazione avrebbe
+aggiornato lo stato corrente esposto dal layer, che si sarebbe poi limitato a restituirlo.
+
+Questa soluzione è stata scartata a favore di una semantica a interrogazione: il layer non
+mantiene alcuno stato temporale proprio, né viene fatto avanzare da un evento dedicato.
+Quando interrogato tramite \texttt{getValue} (Sezione~\ref{subsec:alchemist-layer}), legge
+autonomamente il tempo di simulazione corrente dall'environment
+(Sezione~\ref{subsec:alchemist-time}) e restituisce il valore percepito in quell'istante.
+
+La reazione viene scartata per due motivi:
+\begin{itemize}
+    \item il primo è di ridondanza: il nodo che interroga il layer vive già
+    nell'environment e ne condivide la stessa percezione del tempo, per cui introdurre un
+    evento dedicato al solo scopo di rendere noto al layer che il tempo è avanzato
+    duplicherebbe un'informazione già accessibile al momento della lettura;
+    \item il secondo è di determinismo: con una reazione dedicata, il valore letto a un dato
+    istante dipenderebbe dall'ordine con cui il motore di simulazione esegue la reazione di avanzamento
+    e quella che legge il layer; la semantica a interrogazione
+    elimina il problema alla radice, non essendoci alcuno stato da sincronizzare.
+\end{itemize}
+
+Per le stesse ragioni, il progetto non introduce un'interfaccia dedicata che aggiunga il
+concetto di layer temporale: un layer per dati Copernicus è un'implementazione di
+\texttt{Layer<T, GeoPosition>} come un'altra, e non un tipo concettualmente distinto.
+
+\subsection{Estrapolazione spaziale e temporale}
+\label{subsec:estensione-spaziale}
+
+Ogni dataset copre una regione geografica delimitata, e una posizione richiesta al di
+fuori di essa non corrisponde ad alcuna misura. Produrre comunque un valore, ad esempio
+riportando la posizione al bordo della copertura, significherebbe restituire un numero
+plausibile ma privo di fondamento nei dati, tanto più fuorviante quanto più la posizione
+richiesta è lontana dalla regione coperta. Il layer è quindi definito sulla sola
+estensione spaziale dei dati che espone, e non estrapola al di fuori di essa,
+ne consegue che richieste al layer che utilizzano posizioni esterne alla
+regione geografica di riferimento sono da considerarsi errori di modellazione
+della simulazione.
+
+Discorso opposto per gli istanti temporali esposti dal dataset: l'estensione temporale percorsa
+da una simulazione dipende da una convenzione scelta dal modellista, per cui
+eccedere la finestra coperta dai dati è un'eventualità possibile che dovrebbe
+esporre l'ultimo istante disponibile.
+
+\subsection{Geometrie di griglia supportate}
+\label{subsec:griglie-supportate}
+
+Come osservato nella Sezione~\ref{sec:formati-raster}, non tutte le griglie distribuite
+dai data store sono definite dal prodotto cartesiano di un asse di latitudini e uno di
+longitudini indipendenti: alcuni dataset sono espressi su una griglia nativa in una
+proiezione cartografica, nella quale le coordinate geografiche di ciascuna cella sono note,
+ma non sono ottenibili come prodotto cartesiano di un asse di latitudini e uno di
+longitudini indipendenti.
+Ne consegue che individuare la cella che contiene una data posizione geografica non
+si riduce a due ricerche indipendenti sui due assi, ma richiede l'inversione della
+proiezione fra il sistema di riferimento del dataset e quello geografico.
+Il lavoro si limita quindi alle griglie
+i cui assi di latitudine e longitudine sono indipendenti e monotoni,
+non necessariamente a passo costante, escludendo i dataset distribuiti
+su proiezioni native.
+
+\subsection{Estrazioni cartografiche escluse dal perimetro}
+\label{subsec:bbbike-fuori-perimetro}
+
+Il sotto-problema di acquisizione, in questa tesi, riguarda esclusivamente i dati
+distribuiti dai data store Copernicus. Un secondo servizio di acquisizione, distinto per
+formato e protocollo (per esempio, il recupero di estratti cartografici da OpenStreetMap,
+necessario a popolare un \texttt{OSMEnvironment}, Sezione~\ref{subsec:alchemist-osm}) è
+stato escluso dal perimetro.
+
+\subsection{Sufficienza dell'interfaccia dei layer}
+\label{subsec:api-sufficiente}
+
+Delimitato il perimetro, è possibile formulare una conclusione che non era scontata
+inizialmente: l'unica limitazione dell'interfaccia \texttt{Layer<T, P>} rispetto
+ai dati misurati è la sua impossibilità ad essere modificata esternamente,
+che ricade fuori dal perimetro per ragioni
+indipendenti da questo progetto (Sezione~\ref{subsec:layer-sola-lettura}). Tutti gli altri
+aspetti individuati riguardano il modo in cui il
+valore restituito viene prodotto, e non la forma con cui viene richiesto: una volta
+separate la lettura dei dati, la regola di combinazione dei campioni e la loro acquisizione,
+l'interfaccia esistente si è rivelata adeguata così com'è.
+
+Ne consegue che il lavoro qui descritto è puramente additivo rispetto al simulatore: si
+realizza come un nuovo modulo che implementa un'interfaccia esistente, senza richiedere
+modifiche al motore né alle astrazioni del suo modello.
+
+\section{Relazione fra tempo di simulazione e tempo reale}
+\label{sec:tempo-simulazione-tempo-reale}
+
+I dati distribuiti dai data store Copernicus associano ogni griglia a un istante assoluto
+del mondo reale, riferito a un calendario (Sezione~\ref{sec:formati-raster}). Il tempo di
+simulazione di Alchemist è invece un valore scalare privo di unità di misura intrinseca
+(Sezione~\ref{subsec:alchemist-time}), la cui interpretazione è una convenzione lasciata
+al modellista. Un layer che espone i primi, ma che viene interrogato nel secondo, deve
+quindi risolvere due problemi distinti e fra loro indipendenti:
+
+\begin{description}
+    \item[Corrispondenza] stabilire quale istante del mondo reale corrisponda a un dato
+    valore del tempo di simulazione;
+    \item[Discretezza] stabilire quale valore restituire quando l'istante così ottenuto non
+    coincide con nessuno dei campioni disponibili.
+\end{description}
+
+Il primo è un problema di modellazione, il secondo di risoluzione numerica. Le due
+sottosezioni che seguono li trattano separatamente.
+
+\subsection{La corrispondenza fra i due domini}
+\label{subsec:corrispondenza-temporale}
+
+Come i due domini vengono associati può essere affrontato in due modi opposti: eliminando
+la differenza alla radice, ovvero sostituendo il tipo di tempo del simulatore con uno che
+rappresenti già un istante assoluto, oppure mantenendo il tipo esistente e
+stabilendo una corrispondenza esplicita, confinandola nel componente che ne ha bisogno.
+
+\subsubsection{La sostituzione del tipo di tempo del simulatore}
+
+La prima strada è stata oggetto di uno studio di fattibilità, condotto
+sul codice del simulatore con l'obiettivo di stimare l'estensione dell'intervento
+piuttosto che di portarlo a termine.
+
+L'ostacolo principale è di natura semantica. \texttt{Time} è oggi usato
+indifferentemente per denotare un istante della simulazione e un intervallo fra due
+istanti distinti: le due nozioni condividono lo stesso tipo e sono combinabili fra loro tramite 
+operazioni aritmetiche. Le astrazioni di \texttt{kotlin.time} le distinguono
+invece in due tipi separati, \texttt{Instant} e \texttt{Duration}, fra i quali solo alcune
+combinazioni sono ammesse, ad esempio, non è possibile moltiplicare un istante per uno scalare.
+Allo stesso modo non si ha consistenza nel tipo di ritorno delle operazioni, ad esempio
+sottrarre un \texttt{Instant} da un altro produce un \texttt{Duration};
+\texttt{Time} ammette tutte queste operazioni e il loro risultato è sempre del
+medesimo tipo.
+La sostituzione non è quindi meccanica:
+richiede di stabilire,
+per ogni punto d'uso, quale dei due ruoli vi sia svolto, e la modifica di una firma si
+propaga a tutti i suoi utilizzatori.
+
+\subsubsection{La corrispondenza temporale}
+
+La soluzione adottata mantiene \texttt{Time} inalterato e stabilisce fra i due domini una
+corrispondenza, definita da due soli parametri: un'\emph{origine}, l'istante reale
+a cui corrisponde lo zero del tempo di simulazione, e una \emph{scala}, la durata reale
+rappresentata da un'unità di tempo simulato. Fissati questi due valori, ogni istante di
+simulazione individua un istante reale e viceversa.
+
+La corrispondenza si stabilisce una sola volta, al momento della costruzione del layer, e
+resta confinata al layer stesso: né il motore di simulazione né gli altri componenti ne
+sono a conoscenza, e continuano a operare su un tempo scalare. Ne discende che le
+modifiche richieste da un'eventuale futura migrazione del tipo di tempo del simulatore
+resterebbero circoscritte a un unico punto del modulo.
+
+\subsection{La discretezza dei campioni}
+\label{subsec:discretezza-campioni}
+
+Risolta la corrispondenza temporale, resta il secondo problema: quale valore restituire
+quando l'istante richiesto cade fra due istanti campionati, e in modo del tutto analogo,
+quando la posizione richiesta cade fra le celle della griglia spaziale.
+
+La risposta richiede una regola di combinazione dei campioni adiacenti, e tale regola non
+può essere unica. Una grandezza che varia con continuità, come la temperatura, ammette
+naturalmente una combinazione pesata dei campioni che la circondano; al contrario, un dato 
+di natura categorica (come il codice convenzionale che distingue pioggia, neve o grandine), 
+non ammette interpolazioni intermedie: tali grandezze richiedono 
+di selezionare un singolo campione secondo un criterio esplicito (ad esempio, 
+il nodo spaziale più vicino).
+La scelta dipende dalla semantica del dato, non dal
+meccanismo che lo espone, e non può quindi essere fissata una volta per tutte nel codice
+del layer.
+
+Ne discende un requisito preciso: la regola con cui un valore viene prodotto a partire dai
+campioni disponibili, sia temporali che spaziali, deve essere configurabile e intercambiabile.
+Le strategie che soddisfano questo
+requisito, e il modo in cui vengono composte, sono presentate nel
+Capitolo~\ref{chap:progettazione}.
+
+\section{Requisiti funzionali e non funzionali}
+\label{sec:requisiti}
+
+\subsection{Requisiti funzionali}
+\label{subsec:requisiti-funzionali}
+
+Il modulo deve:
+
+\begin{itemize}
+    \item restituire un valore per una posizione geografica arbitraria interna
+    all'estensione spaziale coperta dai dati;
+    \item restituire il valore corrispondente al tempo di simulazione corrente,
+    risolvendolo a partire dagli istanti disponibili nei file quando questo non coincide
+    con nessuno di essi (Sezione~\ref{sec:tempo-simulazione-tempo-reale});
+    \item permettere di scegliere, fra più alternative, la regola con cui un valore
+    viene prodotto a partire dai campioni disponibili, offrendo inoltre la possibilità
+    di estendere il sistema con regole personalizzate;
+    \item gestire in modo esplicito le celle prive di valore presenti nei dati originali,
+    piuttosto che ignorarle o sostituirle silenziosamente;
+    \item operare, con lo stesso codice, su più dataset e più data store Copernicus
+    (Sezione~\ref{sec:copernicus}), senza conoscerne a priori lo schema;
+    \item ottenere autonomamente i dati non ancora disponibili localmente e conservarli in
+    una cache la cui posizione sia configurabile;
+    \item riutilizzare i dati già presenti in cache quando la configurazione della
+    richiesta è invariata, senza effettuare nuove richieste di rete;
+    \item essere configurabile da un file YAML di simulazione
+    (Sezione~\ref{subsec:alchemist-loader}) senza richiedere obbligatoriamente la scrittura di codice.
+\end{itemize}
+
+\subsection{Requisiti non funzionali}
+\label{subsec:requisiti-non-funzionali}
+
+\begin{description}
+    \item[Additività] il modulo deve realizzarsi come estensione del simulatore, senza
+    richiedere modifiche al suo motore né alle astrazioni del suo modello
+    (Sezione~\ref{subsec:api-sufficiente});
+    \item[Genericità] la parte che sa leggere e risolvere una serie temporale di griglie
+    raster deve restare separata da quella che sa ottenerle dai data store Copernicus, così
+    che la prima resti utilizzabile anche con fonti diverse da quelle qui considerate;
+    \item[Aderenza alle convenzioni di Alchemist] il codice è destinato a una pull request
+    verso il repository del simulatore, e deve quindi rispettarne le convenzioni di stile,
+    di collocazione dei package e di configurazione degli strumenti di analisi statica;
+    \item[Testabilità senza rete] nessun test deve dipendere dalla
+    disponibilità dei data store Copernicus o dal possesso di credenziali valide;
+    \item[Riproducibilità] la stessa richiesta verso un data store deve corrispondere in
+    modo deterministico alla stessa voce di cache;
+    \item[Fallimento esplicito] nessuna condizione anomala deve produrre un valore
+    silenziosamente scorretto: deve produrre un'eccezione con un messaggio diagnostico.
+\end{description}
+
+\section{Modello del dominio}
+\label{sec:modello-dominio}
+
+% Da scrivere: entità concettuali (griglia raster, serie di griglie, layer, strategia di
+% interpolazione, richiesta verso un data store, cache, provider) e loro relazioni,
+% con il diagramma UML delle classi.

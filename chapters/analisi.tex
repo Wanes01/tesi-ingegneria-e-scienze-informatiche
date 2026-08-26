@@ -202,7 +202,7 @@ quindi risolvere due problemi distinti e fra loro indipendenti:
 Il primo è un problema di modellazione, il secondo di risoluzione numerica. Le due
 sottosezioni che seguono li trattano separatamente.
 
-\subsection{La corrispondenza fra i due domini}
+\subsection{La corrispondenza fra i domini temporali}
 \label{subsec:corrispondenza-temporale}
 
 Come i due domini vengono associati può essere affrontato in due modi opposti: eliminando
@@ -249,8 +249,30 @@ resterebbero circoscritte a un unico punto del modulo.
 \label{subsec:discretezza-campioni}
 
 Risolta la corrispondenza temporale, resta il secondo problema: quale valore restituire
-quando l'istante richiesto cade fra due istanti campionati, e in modo del tutto analogo,
-quando la posizione richiesta cade fra le celle della griglia spaziale.
+quando l'istante richiesto cade fra due istanti campionati; formalmente, quale valore restituire
+quando ad ogni istante $t_{i}$ è associata una griglia spaziale e il tempo di simulazione
+corrente viene risolto in un istante $t_s \in [t_i, t_{i+1}]$, \cref{fig:temp-interp}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{figures/temporal_interpolation.png}
+    \caption[Composizione temporale dei campioni]{L'istante identificato ricade nell'intervallo di due campionamenti.}
+    \label{fig:temp-interp}
+\end{figure}
+
+e in modo del tutto analogo,
+quando la posizione richiesta cade fra le celle della griglia spaziale; formalmente,
+quale valore restituire per la posizione $P = (\text{lat}_{a}, \text{lon}_{b})$ quando
+$\text{lat}_{a} \in [\text{lat}_{i}, \text{lat}_{i+1}]$ e $\text{lon}_{b} \in [\text{lon}_{j}, \text{lon}_{j+1}]$
+, \cref{fig:spatial-interp}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{figures/spatial_interpolation.png}
+    \caption[Composizione spaziale dei campioni]{La posizione richiesta ricade tra le misurazioni. I cerchi pieni rappresentano misurazioni disponibili,
+    le croci rappresentano misurazioni assenti.}
+    \label{fig:spatial-interp}
+\end{figure}
 
 La risposta richiede una regola di combinazione dei campioni adiacenti, e tale regola non
 può essere unica. Una grandezza che varia con continuità, come la temperatura, ammette

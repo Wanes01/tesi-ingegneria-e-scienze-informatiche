@@ -250,8 +250,8 @@ resterebbero circoscritte a un unico punto del modulo.
 
 Risolta la corrispondenza temporale, resta il secondo problema: quale valore restituire
 quando l'istante richiesto cade fra due istanti campionati; formalmente, quale valore restituire
-quando ad ogni istante $t_{i}$ è associata una griglia spaziale e il tempo di simulazione
-corrente viene risolto in un istante $t_s \in [t_i, t_{i+1}]$, \cref{fig:temp-interp}.
+quando ad ogni istante $t_{i}$ è associata una griglia spaziale e si ha che il tempo di simulazione
+corrente $t_s \in [t_i, t_{i+1}]$, \cref{fig:temp-interp}.
 
 \begin{figure}[H]
     \centering
@@ -270,7 +270,7 @@ $\text{lat}_{a} \in [\text{lat}_{i}, \text{lat}_{i+1}]$ e $\text{lon}_{b} \in [\
     \centering
     \includegraphics[width=0.5\linewidth]{figures/spatial_interpolation.png}
     \caption[Composizione spaziale dei campioni]{La posizione richiesta ricade tra le misurazioni. I cerchi pieni rappresentano misurazioni disponibili,
-    le croci rappresentano misurazioni assenti.}
+    la croce rappresenta una misurazione assente.}
     \label{fig:spatial-interp}
 \end{figure}
 

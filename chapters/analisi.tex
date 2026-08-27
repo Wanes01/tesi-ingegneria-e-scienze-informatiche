@@ -128,10 +128,11 @@ ne consegue che richieste al layer che utilizzano posizioni esterne alla
 regione geografica di riferimento sono da considerarsi errori di modellazione
 della simulazione.
 
-Discorso opposto per gli istanti temporali esposti dal dataset: l'estensione temporale percorsa
-da una simulazione dipende da una convenzione scelta dal modellista, per cui
-eccedere la finestra coperta dai dati è un'eventualità possibile che dovrebbe
-esporre l'ultimo istante disponibile.
+Per quanto riguarda gli istanti temporali esposti dal dataset, si è scelto di non effettuare
+estrapolazione temporale. Se il tempo di simulazione ricade al di fuori dell'intervallo temporale
+coperto dai dati, viene considerato l'istante del dataset più vicino: se il tempo di simulazione
+precede il primo istante disponibile, viene considerato quest'ultimo; analogamente,
+se lo supera, viene considerato l'ultimo istante temporale presente nei dati.
 
 \subsection{Griglie e serie temporali supportate}
 \label{subsec:griglie-supportate}

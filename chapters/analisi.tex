@@ -28,8 +28,7 @@ dell'interfaccia \texttt{Layer<T, P>} in sé:
     quantità continue: fra un campione e l'altro non esiste, nel dato
     originale, alcun valore, e va quindi stabilita una regola per produrne uno;
     \item non tutte le celle di una griglia riportano una misura: i formati prevedono un
-    valore convenzionale per quelle che ne sono prive, siano esse escluse dal dominio del
-    modello o semplicemente mancanti;
+    valore convenzionale per quelle che ne sono prive;
     \item non risiedono in memoria né sono calcolabili localmente, ma vanno ottenuti da un
     servizio remoto che risponde in modo asincrono, secondo il paradigma descritto nella
     Sezione~\ref{sec:ogc-api-processes}, senza garanzia di completamento della richiesta.
@@ -308,6 +307,10 @@ Il modulo deve:
     \item permettere di scegliere, fra più alternative, la regola con cui un valore
     viene prodotto a partire dai campioni disponibili, offrendo inoltre la possibilità
     di estendere il sistema con regole personalizzate;
+    \item poiché i file mantengono le misurazioni come numeri in virgola mobile, i quali possono rappresentare
+    anche valori interi, categorici o booleani, bisogna esporre ai nodi un valore il cui tipo non coincida necessariamente con
+    quello numerico con cui la grandezza è registrata nel file, così da poter rappresentare
+    anche grandezze la cui interpretazione non è quantitativa;
     \item gestire in modo esplicito le celle prive di valore presenti nei dati originali,
     piuttosto che ignorarle o sostituirle silenziosamente;
     \item operare, con lo stesso codice, su più dataset e più data store Copernicus
@@ -344,6 +347,73 @@ Il modulo deve:
 \section{Modello del dominio}
 \label{sec:modello-dominio}
 
-% Da scrivere: entità concettuali (griglia raster, serie di griglie, layer, strategia di
-% interpolazione, richiesta verso un data store, cache, provider) e loro relazioni,
-% con il diagramma UML delle classi.
+Questa sezione individua le entità
+in gioco e le relazioni che le legano; la figura~\ref{fig:modello-dominio} le riporta.
+Il modello si limita alle astrazioni: le loro realizzazioni concrete e il modo in cui
+vengono composte fra loro sono presentate nel Capitolo~\ref{chap:progettazione}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/uml_dominio.png}
+    \caption[Modello del dominio]{Le entità del dominio e le relazioni fra di esse.}
+    \label{fig:modello-dominio}
+\end{figure}
+
+\begin{description}
+    \item[\texttt{RasterGrid}] l'insieme dei campioni di una grandezza relativi a un
+    singolo istante, organizzati su un reticolo definito da un asse di latitudini e uno di
+    longitudini indipendenti e monotoni. Questa
+    griglia delimita l'estensione spaziale entro la quale la grandezza è nota, e le sue
+    celle possono non ospitare alcuna misura;
+
+    \item[\texttt{GridSnapshots}] una successione di griglie fra loro omogenee, ovvero
+    relative alla stessa grandezza e agli stessi assi spaziali, ciascuna associata a un
+    istante del mondo reale distinto dagli altri. Gli istanti sono ordinati, ma non
+    necessariamente equispaziati, e delimitano l'estensione temporale entro la quale la
+    grandezza è nota;
+
+    \item[\texttt{CopernicusLayer}] la realizzazione di un \texttt{Layer} su posizioni spaziali
+    (\texttt{GeoPosition}) che espone una
+    serie di griglie. Al momento della costruzione riceve i due parametri che stabiliscono
+    la corrispondenza fra tempo di simulazione e tempo reale
+    (Sezione~\ref{subsec:corrispondenza-temporale}): un'origine, l'istante reale a cui
+    corrisponde lo zero del tempo di simulazione, e una scala, la durata reale rappresentata
+    da un'unità di tempo simulato. Non mantiene alcuno stato temporale proprio: quando
+    interrogato, legge il tempo corrente dall'\texttt{Environment}
+    (Sezione~\ref{subsec:layer-pull-based});
+
+    \item[\texttt{SpatioTemporalInterpolation}] la regola con cui, dalle due griglie
+    adiacenti all'istante richiesto e dai campioni che circondano la posizione richiesta, si
+    ottiene un valore per quella posizione e quell'istante. La regola attraversa entrambi i
+    domini, spaziale e temporale, ed è per questo espressa da un'unica astrazione, i cui
+    parametri riportano sia le due griglie sia il peso temporale che le separa. La sua
+    scelta dipende dalla semantica della grandezza esposta;
+
+    \item[\texttt{MeasurementConverter}] il criterio con cui il valore numerico prodotto
+    dalla regola di risoluzione viene tradotto nel valore esposto dal layer, compreso il
+    caso in cui i campioni necessari a produrlo siano assenti. È ciò che rende il layer
+    generico nel tipo \texttt{T} restituito;
+
+    \item[\texttt{CacheKey}] rappresenta la descrizione dei dati da ottenere da una fonte esterna. Ne
+    costituisce l'identità, nel senso che due descrizioni uguali individuano gli stessi
+    dati: è questo a rendere possibile riconoscere se sono già stati ottenuti in
+    precedenza e quindi individuabili in cache;
+
+    \item[\texttt{ExternalDataProvider}] la fonte in grado di soddisfare una descrizione,
+    consegnando i dati corrispondenti in forma di file;
+
+    \item[\texttt{CacheManager}] l'entità che, data una descrizione, restituisce i dati
+    corrispondenti, interpellando la fonte esterna solo quando questi non siano già
+    disponibili localmente.
+\end{description}
+
+Le entità si dispongono lungo i tre sotto-problemi individuati nella
+Sezione~\ref{sec:analisi-problema}. Le prime due riguardano la rappresentazione, le tre
+successive la risoluzione di un valore, le ultime tre l'acquisizione.
+
+Le uniche relazioni
+che attraversano i confini fra un gruppo e l'altro sono due: quella fra il layer e la serie
+di griglie che espone, e quella fra il layer e il gestore della cache dal quale ottiene i
+dati da cui la serie viene costruita. Nessuna entità dell'area di
+acquisizione compare fra quelle di cui il layer ha bisogno per restituire un valore: la
+dipendenza è confinata alla sola costruzione.

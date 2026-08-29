@@ -1,0 +1,232 @@
+\chapter{Progettazione}
+\label{chap:progettazione}
+
+\section{Architettura generale}
+\label{sec:architettura-generale}
+
+\subsection{Le aree del modulo}
+\label{subsec:aree-modulo}
+
+Il modulo è organizzato in quattro aree, tre delle quali corrispondono direttamente ai
+sotto-problemi individuati nella Sezione~\ref{sec:analisi-problema}, mentre la quarta è il
+punto in cui le altre vengono composte:
+
+\begin{description}
+    \item[Rappresentazione] le astrazioni che descrivono una griglia raster e una
+    successione temporale di griglie, indipendentemente dalla loro provenienza;
+    \item[Risoluzione] le regole, intercambiabili, con cui da campioni discreti si
+    ottiene un valore per una posizione e un istante arbitrari, e con cui tale valore
+    viene tradotto nel tipo esposto dal layer;
+    \item[Acquisizione] le astrazioni che descrivono la richiesta di dati a una fonte
+    esterna e la loro conservazione locale;
+    \item[Layer] la realizzazione dell'interfaccia \texttt{Layer<T, P>} di Alchemist, che
+    mette in relazione il tempo di simulazione con quello reale e delega alle regole di
+    risoluzione la produzione del valore.
+\end{description}
+
+\subsection{Il tipo comune dei campioni}
+\label{subsec:tipo-campioni}
+
+Una decisione precede la progettazione di queste aree: quale tipo attribuire ai
+campioni durante l'intero percorso che va dalla lettura del file al valore restituito
+dal layer.
+
+I formati \ac{GRIB} e \ac{NetCDF} esposti dai data store Copernicus codificano
+tutte le misure in virgola mobile, anche nel caso in cui siano esse in origine
+interi, booleani o categorici. Qualunque sia il significato originale del dato grezzo,
+il tipo a doppia precisione è in grado di rappresentarlo senza perdita. Il modulo
+adotta quindi \texttt{Double} come unico tipo dei campioni lungo tutta la catena
+interna.
+
+La scelta non è dettata solo dalla capacità rappresentativa. Rendere generica anche la
+rappresentazione, introducendo una griglia parametrica in un tipo \texttt{T} arbitrario,
+avrebbe comportato una conseguenza indesiderata dettata dal meccanismo di caricamento da YAML,
+basato sulla riflessione: una gerarchia generica in profondità avrebbe
+moltiplicato il numero di classi necessarie a renderla dichiarabile.
+
+La genericità richiesta dal requisito di esporre ai nodi un valore di tipo arbitrario
+non viene però abbandonata: viene concentrata in un'unica
+astrazione, il \texttt{MeasurementConverter} descritto nella
+Sezione~\ref{subsec:conversione}. Il layer resta quindi generico nel tipo che espone,
+mentre tutto ciò che sta a monte della conversione ragiona su numeri.
+
+\subsection{La convenzione per i valori mancanti}
+\label{subsec:convenzione-mancanti}
+
+Fissato il tipo dei campioni, resta da stabilire come rappresentare l'assenza di una
+misura. Le alternative principali esplorate sono tre: un tipo nullabile,
+una astrazione apposita per i dati grezzi letti dalla griglia, oppure un
+valore riservato all'interno del tipo stesso.
+
+Il modulo adotta l'ultima, usando \texttt{Double.NaN} come unica rappresentazione interna
+del dato mancante. La motivazione è duplice. In primo luogo, \texttt{NaN} è un valore del
+tipo \texttt{Double}: la sua adozione non introduce incapsulamento e preserva la
+possibilità di memorizzare le griglie in vettori di primitivi. In secondo luogo, \texttt{NaN} si propaga
+automaticamente attraverso le operazioni aritmetiche: una regola di risoluzione che
+combini campioni fra i quali ve ne sia uno mancante produce a sua volta un valore
+mancante, senza che il caso debba essere trattato esplicitamente in ciascuna regola.
+
+Il dato mancante attraversa dunque il modulo come \texttt{NaN} fino al
+convertitore che decide cosa esporre (Sezione~\ref{subsec:conversione}).
+
+\section{Rappresentazione dei dati raster e delle serie temporali}
+\label{sec:rappresentazione}
+
+Questa sezione descrive le astrazioni che danno forma in memoria alle entità
+\texttt{RasterGrid} e \texttt{GridSnapshots} individuate nel modello del dominio
+(Sezione~\ref{sec:modello-dominio}). La \cref{fig:uml-rappresentazione} le riporta.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/progettazione/rappresentazione.png}
+    \caption[Rappresentazione dei dati raster]{Le astrazioni per una griglia raster e per
+    una serie temporale di griglie, con le rispettive realizzazioni.}
+    \label{fig:uml-rappresentazione}
+\end{figure}
+
+\subsection{La griglia raster}
+\label{subsec:raster-grid}
+
+Una griglia raster è definita da due assi indipendenti, di latitudini e di longitudini, e
+dai campioni collocati sulle celle che ne risultano. I due assi sono esposti come vettori di
+\texttt{Double}; si richiede che gli assi siano monotoni ma non che siano equispaziati, per cui la posizione
+di ciascuna coordinata non è ricavabile per via aritmetica e va conservata esplicitamente.
+Di conseguenza, l'individuazione della cella che contiene una data coordinata è una
+ricerca sull'asse anziché un calcolo.
+
+\texttt{RasterGrid} è una classe astratta e non un'interfaccia. La ragione è che la
+validità degli assi, ovvero la loro monotonia stretta, la coerenza fra le loro dimensioni
+e il numero dei campioni, è una precondizione che vale per ogni griglia, quale che sia il
+modo in cui i campioni siano memorizzati. Collocandone la verifica nel costruttore della
+classe astratta, essa viene eseguita per costruzione da ogni realizzazione presente e
+futura.
+
+Le due realizzazioni, \texttt{ArrayRasterGrid} e \texttt{MapRasterGrid},
+differiscono unicamente nel modo in cui i campioni sono memorizzati, e definiscono
+rispettivamente una implementazione per griglie dense ed una
+per griglie sparse; questa distinzione viene effettuata poiché la densità
+delle griglie può variare notevolmente, ad esempio, la temperatura
+campionata su un tratto prevalentemente terreno riporterà la maggior parte
+delle misurazioni; altri campionamenti, come ad esempio per la portata fluviale,
+possono essere riportate solo in tratti specifici, rendendo la
+griglia sparsa.
+
+Si noti che la distinzione è invisibile a chi usa la griglia: entrambe espongono la stessa
+interfaccia e differiscono solo per il compromesso fra memoria occupata e costo di
+accesso.
+
+\subsection{La serie temporale di griglie}
+\label{subsec:grid-snapshots}
+
+\texttt{GridSnapshots} descrive una successione di griglie omogenee, ciascuna associata a
+un istante del mondo reale. L'astrazione espone due sole caratteristiche: la successione
+ordinata degli istanti e l'accesso alla griglia corrispondente a una data posizione nella
+successione. Il primo è ciò che consente a chi la interroga di individuare i due istanti
+adiacenti a quello richiesto; il secondo, di ottenere le griglie corrispondenti.
+
+Come da nome, la sua implementazione \texttt{EagerGridSnapshots}, crea e carica tutte le
+\texttt{RasterGrid} in memoria in fase di costruzione, la quale avviene a partire da una directory, e non da
+un singolo file poiché una richiesta a un data store Copernicus
+può, possibilmente, restituire più file, ad esempio un archivio contenente un file per ogni ora.
+
+\section{Le strategie di risoluzione dei valori}
+\label{sec:risoluzione}
+
+La Sezione~\ref{subsec:discretezza-campioni} ha stabilito che la regola con cui un valore
+viene prodotto a partire dai campioni disponibili non può essere fissata nel codice, ma
+deve essere configurabile e intercambiabile. Questa sezione ne descrive la realizzazione
+come famiglia di strategie, e la estende al secondo passaggio necessario a produrre il
+valore restituito dal layer: la traduzione da un \texttt{Double} al tipo esposto ai nodi.
+
+\subsection{Le strategie di interpolazione}
+\label{subsec:interpolazione}
+
+Il requisito si traduce nell'introduzione di un'astrazione per la regola e di
+un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}.
+La \cref{fig:uml-interpolazione} riporta la gerarchia risultante.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.93\linewidth]{figures/progettazione/interpolazione.png}
+    \caption[Strategie di interpolazione]{Le strategie di interpolazione spaziale,
+    temporale e spazio-temporale, e la loro composizione.}
+    \label{fig:uml-interpolazione}
+\end{figure}
+
+L'astrazione principale, \texttt{SpatioTemporalInterpolation}, attraversa entrambi i
+domini: riceve le due griglie adiacenti all'istante richiesto, la posizione geografica e
+il peso che colloca l'istante richiesto fra i due, e ne produce un valore. La ragione per
+cui la regola è espressa da un'unica astrazione anziché da due composte in un ordine
+fissato è che non tutte le regole concepibili sono separabili spazialmente e temporalmente: una regola
+che consideri contemporaneamente i campioni delle due griglie, senza risolvere prima lo spazio
+e poi il tempo, non sarebbe esprimibile.
+
+Altre regole di interesse pratico però sono separabili, ovvero, si risolvono collassando
+le due griglie spaziali ad un unico valore ciascuno in funzione della sola posizione,
+per poi decidere il valore finale rispetto alla regola di interpolazione temporale su questi.
+
+Per queste regole, il
+modulo introduce \texttt{SeparableSpatioTemporalInterpolation}, che realizza l'astrazione
+principale componendo due strategie indipendenti: una spaziale, che risolve la posizione
+su ciascuna delle due griglie, e una temporale, che combina i due valori così ottenuti
+secondo il peso.
+
+Le realizzazioni fornite rispondono alla distinzione, fra grandezze che ammettono valori intermedi e
+grandezze che non li ammettono. Sul dominio spaziale, \texttt{BilinearInterpolation}
+produce una media pesata dei quattro campioni che circondano la posizione (si veda come riferimento la \cref{fig:spatial-interp}), adatta a
+grandezze continue, mentre \texttt{NearestInterpolation} seleziona il campione della cella
+più vicina, scelta ammissibile per grandezze categoriche. Sul dominio temporale,
+\texttt{LinearInterpolation} combina i due campioni in proporzione al peso, mentre
+\texttt{ClosestInterpolation}, \texttt{LastInterpolation} e \texttt{NextInterpolation} ne
+selezionano uno soltanto, rispettivamente il più vicino, il precedente o il successivo.
+
+Fra le combinazioni possibili, una configurazione sufficientemente ricorrente da meritare
+un nome proprio, in modo da poter essere istanziata direttamente tramite YAML, è la \texttt{TrilinearInterpolation}.
+Essa può essere ottenuta applicando un'interpolazione bilineare sulle due dimensioni spaziali
+e una successiva interpolazione lineare lungo quella temporale~\cite{engel2006realtime}.
+Essa non costituisce tuttavia una specializzazione della composizione separabile,
+bensì una sua configurazione fissata, e viene realizzata per delegazione.
+
+È importante notare che il compito di risolvere o propagare eventuali valori
+mancanti (qua rappresentati da \texttt{Double.NaN}) spetti alla strategia di
+interpolazione spazio-temporale utilizzata. In \texttt{BilinearInterpolation}, ad esempio,
+si è scelto di propagare il valore mancante se almeno uno dei quattro campioni circondanti
+la posizione non è presente, e viene allo stesso modo propagato da \texttt{LinearInterpolation}
+se uno dei due valori spazialmente risolti è assente.
+
+\subsection{La conversione del valore}
+\label{subsec:conversione}
+
+Risolto il valore numerico, resta il passaggio finale: tradurlo nel tipo esposto dal layer.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/progettazione/conversione.png}
+    \caption[Conversione del valore]{L'astrazione per la conversione del valore risolto e
+    la sua composizione con la gestione dei valori mancanti.}
+    \label{fig:uml-conversione}
+\end{figure}
+
+\texttt{MeasurementConverter<T>} descrive la traduzione da un \texttt{Double} al
+tipo \texttt{T} esposto dal layer. È l'unico punto del modulo in cui compare il parametro
+di tipo del layer, ed è ciò che consente di esporre ai nodi grandezze la cui interpretazione
+non è quantitativa, come ad esempio convertendo una soglia in un valore booleano.
+
+La conversione porta con sé un secondo compito: decidere cosa fare quando il valore
+risolto è mancante.
+Una scelta che può essere comune nelle simulazioni è poter convertire i valori mancanti
+in un valore prefissato, ed è ciò di cui si occupa
+\texttt{MissingValueFallbackConverter<T>}, il quale riceve un altro convertitore e un valore di
+ripiego: intercetta il caso mancante e restituisce il ripiego, inoltrando ogni altro
+valore al convertitore delegato.
+
+\texttt{DoubleIdentityWithFallback} è la configurazione corrispondente al caso più comune,
+ovverò un layer che espone direttamente il valore numerico, agendo da funzione identità,
+con un possibile ripiego su un valore prestabilito nel caso il dato sia mancante
+(propagando il valore assente, se non specificato altrimenti).
+Come per \texttt{TrilinearInterpolation}, la composizione è realizzata per delegazione
+poiché è una configurazione fissata a cui si dà un nome, e non una specializzazione del
+corportamento.
+
+% DEVI CONTINUARE DA QUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+

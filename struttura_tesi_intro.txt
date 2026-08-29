@@ -9,3 +9,11 @@ Questo capitolo analizza il problema affrontato dalla tesi, ne ricostruisce il p
 esamina la relazione fra il tempo di simulazione e il tempo del mondo reale, e da tutto
 questo deriva i requisiti funzionali e non funzionali e il modello del dominio che ne
 risulta.
+
+### PROGETTAZIONE
+Il Capitolo~\ref{chap:analisi} ha individuato tre sotto-problemi debolmente accoppiati
+(rappresentazione, risoluzione, acquisizione) e i requisiti che la soluzione deve
+soddisfare. Questo capitolo descrive le astrazioni introdotte per ciascuno di essi, il
+modo in cui vengono composte e le motivazioni delle scelte adottate. Le realizzazioni
+concrete di tali astrazioni, e i vincoli che l'ambiente di esecuzione ha imposto alla loro
+forma, sono trattate nel Capitolo~\ref{chap:implementazione}.

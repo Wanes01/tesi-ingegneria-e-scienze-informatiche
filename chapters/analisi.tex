@@ -124,7 +124,7 @@ riportando la posizione al bordo della copertura, significherebbe restituire un 
 plausibile ma privo di fondamento nei dati, tanto più fuorviante quanto più la posizione
 richiesta è lontana dalla regione coperta. Il layer è quindi definito sulla sola
 estensione spaziale dei dati che espone, e non estrapola al di fuori di essa,
-ne consegue che richieste al layer che utilizzano posizioni esterne alla
+ne consegue che le richieste al layer che utilizzano posizioni esterne alla
 regione geografica di riferimento sono da considerarsi errori di modellazione
 della simulazione.
 
@@ -170,7 +170,7 @@ stato escluso dal perimetro.
 
 Delimitato il perimetro, è possibile formulare una conclusione che non era scontata
 inizialmente: l'unica limitazione dell'interfaccia \texttt{Layer<T, P>} rispetto
-ai dati misurati è la sua impossibilità ad essere modificata esternamente,
+ai dati misurati è la sua impossibilità di essere modificata esternamente,
 che ricade fuori dal perimetro per ragioni
 indipendenti da questo progetto (Sezione~\ref{subsec:layer-sola-lettura}). Tutti gli altri
 aspetti individuati riguardano il modo in cui il

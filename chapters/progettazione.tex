@@ -17,11 +17,11 @@ punto in cui le altre vengono composte:
     \item[Risoluzione] le regole, intercambiabili, con cui da campioni discreti si
     ottiene un valore per una posizione e un istante arbitrari, e con cui tale valore
     viene tradotto nel tipo esposto dal layer;
-    \item[Acquisizione] le astrazioni che descrivono la richiesta di dati a una fonte
-    esterna e la loro conservazione locale;
     \item[Layer] la realizzazione dell'interfaccia \texttt{Layer<T, P>} di Alchemist, che
     mette in relazione il tempo di simulazione con quello reale e delega alle regole di
-    risoluzione la produzione del valore.
+    risoluzione la produzione del valore;
+    \item[Acquisizione] le astrazioni che descrivono la richiesta di dati a una fonte
+    esterna e la loro conservazione locale.
 \end{description}
 
 \subsection{Il tipo comune dei campioni}
@@ -62,12 +62,9 @@ Il modulo adotta l'ultima, usando \texttt{Double.NaN} come unica rappresentazion
 del dato mancante. La motivazione è duplice. In primo luogo, \texttt{NaN} è un valore del
 tipo \texttt{Double}: la sua adozione non introduce incapsulamento e preserva la
 possibilità di memorizzare le griglie in vettori di primitivi. In secondo luogo, \texttt{NaN} si propaga
-automaticamente attraverso le operazioni aritmetiche: una regola di risoluzione che
-combini campioni fra i quali ve ne sia uno mancante produce a sua volta un valore
-mancante, senza che il caso debba essere trattato esplicitamente in ciascuna regola.
-
-Il dato mancante attraversa dunque il modulo come \texttt{NaN} fino al
-convertitore che decide cosa esporre (Sezione~\ref{subsec:conversione}).
+automaticamente attraverso le operazioni aritmetiche, una proprietà che può essere utile
+nelle regole di risoluzione se si sceglie di lasciar propagare questo valore fino
+al convertitore, il quale decide cosa esporre (Sezione~\ref{subsec:conversione}).
 
 \section{Rappresentazione dei dati raster e delle serie temporali}
 \label{sec:rappresentazione}
@@ -103,12 +100,12 @@ futura.
 
 Le due realizzazioni, \texttt{ArrayRasterGrid} e \texttt{MapRasterGrid},
 differiscono unicamente nel modo in cui i campioni sono memorizzati, e definiscono
-rispettivamente una implementazione per griglie dense ed una
+rispettivamente un'implementazione per griglie dense ed una
 per griglie sparse; questa distinzione viene effettuata poiché la densità
 delle griglie può variare notevolmente, ad esempio, la temperatura
 campionata su un tratto prevalentemente terreno riporterà la maggior parte
 delle misurazioni; altri campionamenti, come ad esempio per la portata fluviale,
-possono essere riportate solo in tratti specifici, rendendo la
+possono essere riportati solo in tratti specifici, rendendo la
 griglia sparsa.
 
 Si noti che la distinzione è invisibile a chi usa la griglia: entrambe espongono la stessa
@@ -125,9 +122,17 @@ successione. Il primo è ciò che consente a chi la interroga di individuare i d
 adiacenti a quello richiesto; il secondo, di ottenere le griglie corrispondenti.
 
 Come da nome, la sua implementazione \texttt{EagerGridSnapshots}, crea e carica tutte le
-\texttt{RasterGrid} in memoria in fase di costruzione, la quale avviene a partire da una directory, e non da
+\texttt{RasterGrid} in memoria in fase di costruzione, la quale avviene a partire da una cartella, e non da
 un singolo file poiché una richiesta a un data store Copernicus
 può, possibilmente, restituire più file, ad esempio un archivio contenente un file per ogni ora.
+
+Un \ac{GRIB} o \ac{NetCDF}, può contenere più variabili distinte: un archivio scaricato da
+un data store Copernicus può includere, ad esempio, sia la temperatura a due metri dal suolo
+sia la velocità del vento nello stesso file. La costruzione di una serie richiede quindi di specificare
+anche quale fra le variabili presenti debba essere estratta:
+è il parametro che determina a quale grandezza fisica la serie risultante fa riferimento.
+Il modo in cui il una variabile viene estratta da un file è discusso nel capitolo
+\ref{chap:implementazione}.
 
 \section{Le strategie di risoluzione dei valori}
 \label{sec:risoluzione}
@@ -154,7 +159,7 @@ La \cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 \end{figure}
 
 L'astrazione principale, \texttt{SpatioTemporalInterpolation}, attraversa entrambi i
-domini: riceve le due griglie adiacenti all'istante richiesto, la posizione geografica e
+domini: riceve la posizione geografica, due griglie adiacenti all'istante richiesto e
 il peso che colloca l'istante richiesto fra i due, e ne produce un valore. La ragione per
 cui la regola è espressa da un'unica astrazione anziché da due composte in un ordine
 fissato è che non tutte le regole concepibili sono separabili spazialmente e temporalmente: una regola
@@ -171,7 +176,7 @@ principale componendo due strategie indipendenti: una spaziale, che risolve la p
 su ciascuna delle due griglie, e una temporale, che combina i due valori così ottenuti
 secondo il peso.
 
-Le realizzazioni fornite rispondono alla distinzione, fra grandezze che ammettono valori intermedi e
+Le realizzazioni fornite rispondono alla distinzione fra grandezze che ammettono valori intermedi e
 grandezze che non li ammettono. Sul dominio spaziale, \texttt{BilinearInterpolation}
 produce una media pesata dei quattro campioni che circondano la posizione (si veda come riferimento la \cref{fig:spatial-interp}), adatta a
 grandezze continue, mentre \texttt{NearestInterpolation} seleziona il campione della cella
@@ -184,8 +189,8 @@ Fra le combinazioni possibili, una configurazione sufficientemente ricorrente da
 un nome proprio, in modo da poter essere istanziata direttamente tramite YAML, è la \texttt{TrilinearInterpolation}.
 Essa può essere ottenuta applicando un'interpolazione bilineare sulle due dimensioni spaziali
 e una successiva interpolazione lineare lungo quella temporale~\cite{engel2006realtime}.
-Essa non costituisce tuttavia una specializzazione della composizione separabile,
-bensì una sua configurazione fissata, e viene realizzata per delegazione.
+Quest'ultima non costituisce tuttavia una specializzazione della composizione separabile,
+bensì una sua configurazione fissata, e viene quindi realizzata per delegazione.
 
 È importante notare che il compito di risolvere o propagare eventuali valori
 mancanti (qua rappresentati da \texttt{Double.NaN}) spetti alla strategia di
@@ -221,12 +226,168 @@ ripiego: intercetta il caso mancante e restituisce il ripiego, inoltrando ogni a
 valore al convertitore delegato.
 
 \texttt{DoubleIdentityWithFallback} è la configurazione corrispondente al caso più comune,
-ovverò un layer che espone direttamente il valore numerico, agendo da funzione identità,
+ovvero un layer che espone direttamente il valore numerico, agendo da funzione identità,
 con un possibile ripiego su un valore prestabilito nel caso il dato sia mancante
 (propagando il valore assente, se non specificato altrimenti).
 Come per \texttt{TrilinearInterpolation}, la composizione è realizzata per delegazione
 poiché è una configurazione fissata a cui si dà un nome, e non una specializzazione del
-corportamento.
+comportamento.
 
-% DEVI CONTINUARE DA QUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+\section{Il layer Copernicus e le sue modalità di costruzione}
+\label{sec:layer}
 
+Il layer è il punto in cui le diverse aree vengono composte. La
+\cref{fig:aggr-layer} ne riporta le entità con cui collabora.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.93\linewidth]{figures/progettazione/aggr_layer.png}
+    \caption[Il layer Copernicus]{La gerarchia del layer e le sue collaborazioni.}
+    \label{fig:aggr-layer}
+\end{figure}
+
+\subsection{Collocazione nella gerarchia e responsabilità}
+\label{subsec:layer-gerarchia}
+
+Fra l'interfaccia \texttt{Layer<T, P>} di Alchemist e la realizzazione concreta è
+interposta \texttt{GeoLayer<T>}, che fissa il tipo delle posizioni a \texttt{GeoPosition}
+lasciando libero il tipo del valore esposto. L'astrazione intermedia non aggiunge alcun
+metodo: il suo scopo è dare un nome alla specializzazione geospaziale del layer.
+
+\texttt{CopernicusLayer<T>} realizza tale astrazione, e le sue responsabilità sono tutte di
+coordinamento: stabilire la corrispondenza fra gli istanti del mondo reale e quello della
+simulazione, individuare i campioni pertinenti al momento in cui viene interrogato, e
+delegare alle strategie la produzione del valore.
+
+Il layer non deve contenere alcuna logica di interpolazione né alcuna conoscenza dei
+formati di origine: è il luogo in cui le decisioni prese altrove vengono applicate
+nell'ordine corretto.
+Quando gli viene chiesto il valore in una posizione, il layer:
+
+\begin{enumerate}
+    \item legge il tempo di simulazione corrente dall'environment, coerentemente con la
+    semantica stabilita nella Sezione~\ref{subsec:layer-pull-based};
+    \item individua nella serie le due griglie adiacenti che racchiudono il tempo di simulazione corrente, e il peso che
+    ne esprime la posizione relativa fra di essi, nella forma attesa dalle strategie;
+    \item delega alla strategia di risoluzione la produzione del valore numerico, a partire
+    dalle due griglie corrispondenti, dalla posizione richiesta e dal peso temporale;
+    \item delega al convertitore la traduzione del valore numerico nel tipo esposto.
+\end{enumerate}
+
+\subsection{Le modalità di costruzione}
+\label{subsec:layer-costruzione}
+
+Il layer prevede tre modalità di costruzione, ordinate per ampiezza crescente di ciò che si
+assume già disponibile.
+
+\begin{description}
+    \item[Da una serie già disponibile] il layer riceve direttamente una
+    \texttt{GridSnapshots}, senza sapere da dove provenga. È la modalità di riferimento,
+    quella su cui le altre due si appoggiano, ed è ciò che rende il comportamento del layer
+    verificabile in isolamento, indipendentemente dalla lettura di file e dall'accesso alla
+    rete (Sezione~\ref{subsec:requisiti-non-funzionali});
+    \item[Da una cartella locale] il layer riceve il percorso di una cartella contenente
+    file già disponibili, ne costruisce la serie di griglie e prosegue come nel caso precedente. È la
+    modalità adatta a dati ottenuti per altra via, o già presenti sulla macchina;
+    \item[Da un data store remoto] il layer riceve la descrizione di una richiesta verso un
+    data store Copernicus e la sottopone al gestore della cache, che restituisce una
+    cartella, riconducendo al caso precedente.
+\end{description}
+
+Si sceglie quindi di stratificare le modalità di costruzione: ciascuna produce
+l'argomento della precedente. Ne discende una proprietà utile in fase di verifica, ovvero
+che tutto ciò che distingue le tre modalità riguarda esclusivamente il modo in cui la serie
+viene ottenuta, mentre il comportamento successivo è il medesimo.
+
+La classe \texttt{CopernicusLayer<T>} è generica nel tipo esposto; il modulo fornisce anche
+\texttt{DoubleCopernicusLayer}, che ne fissa il parametro al tipo numerico. La sua
+esistenza è necessaria poiché il meccanismo di caricamento delle simulazioni non è in grado
+di istanziare una classe generica, mentre una sua specializzazione concreta lo è.
+La specializzazione è inoltre il punto in cui i valori predefiniti delle strategie possono
+essere stabiliti, cosa non possibile nella classe generica, non essendo definibile un convertitore
+predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefiniti sono mostrati nella \cref{fig:costr-layer}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/progettazione/costr_layer.png}
+    \caption[I costruttori del layer Copernicus]{I costruttori del layer e i valori predefiniti assegnati.}
+    \label{fig:costr-layer}
+\end{figure}
+
+Gli ultimi due costruttori sono pensati per essere dichiarati tramite la configurazione YAML,
+si noti infatti che, tranne \texttt{Environment} passato via iniezione delle dipendenze, tutti gli
+argomenti dell'ultimo paio di costruttori sono di tipi che il simulatore riesce a riconoscere da YAML,
+quali stringhe, booleani o classi non generiche.
+
+\section{Il sottosistema di acquisizione dati}
+\label{sec:acquisizione}
+
+L'ultima area risponde al sotto-problema di acquisizione: ottenere i dati da un servizio
+remoto in modo riproducibile e verificabile, senza riscaricarli a ogni esecuzione. La
+\cref{fig:uml-acquisizione} ne riporta le astrazioni e le realizzazioni.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/progettazione/acquisizione.png}
+    \caption[Il sottosistema di acquisizione]{Le astrazioni per la cache e per l'accesso a
+    fonti esterne, e le realizzazioni relative ai data store Copernicus.}
+    \label{fig:uml-acquisizione}
+\end{figure}
+
+\subsection{Le astrazioni}
+\label{subsec:acquisizione-astrazioni}
+
+Il sottosistema è costruito su tre astrazioni, corrispondenti alle entità individuate nel
+modello del dominio:
+
+\begin{description}
+    \item[\texttt{CacheKey}] la descrizione dei dati da ottenere, che ne costituisce
+    l'identità. L'unica capacità che l'astrazione richiede è di sapersi tradurre in un nome
+    di cartella deterministicamente, in modo tale che descrizioni uguali producono lo stesso nome e
+    descrizioni diverse nomi diversi;
+    \item[\texttt{ExternalDataProvider<R>}] la fonte in grado di soddisfare una
+    descrizione, depositando i file corrispondenti in una cartella indicata dal chiamante.
+    L'astrazione non indica né il modo né il formato: si limita a stabilire che,
+    al termine dell'operazione, la cartella contenga i dati richiesti;
+    \item[\texttt{CacheManager<R>}] l'entità che, data una descrizione, restituisce la
+    cartella contenente i dati corrispondenti, interpellando la fonte esterna solo quando
+    non siano già disponibili localmente.
+\end{description}
+
+Tutte e tre sono parametriche nel tipo della descrizione, vincolato a essere una
+\texttt{CacheKey}. Il parametro è ciò che garantisce staticamente che un
+gestore di cache e la fonte a cui esso si rivolge accettino la stessa descrizione, senza
+che tale coerenza debba essere verificata a tempo di esecuzione.
+
+\subsection{L'indipendenza dalla fonte}
+\label{subsec:acquisizione-indipendenza}
+
+Il gestore della cache, \texttt{FileSystemCacheManager<R>}, è indipendente dalla
+fonte. Il suo compito consiste nel risolvere il nome della cartella a partire dalla
+descrizione, verificarne l'esistenza, e in caso contrario invocare la fonte e conservarne
+il risultato nel file system: nessuna di queste operazioni richiede di sapere se i dati provengano da un
+data store Copernicus, da un servizio di estrazione cartografica o da qualunque altra
+sorgente. Le uniche realizzazioni che conoscono i data store Copernicus sono
+\texttt{CopernicusRequest}, che descrive una richiesta verso di essi, e
+\texttt{CopernicusDataStoreProvider}, che la soddisfa dialogando con il servizio remoto
+secondo il paradigma descritto nella Sezione~\ref{sec:ogc-api-processes}. Estendere il
+sottosistema a una fonte diversa, richiederebbe di realizzare solo la
+coppia \texttt{CacheKey} e \texttt{ExternalDataProvider<R>}, e nient'altro.
+
+\subsection{L'identità di una richiesta}
+\label{subsec:acquisizione-identita}
+
+Il requisito di riproducibilità (Sezione~\ref{subsec:requisiti-non-funzionali}) chiede che
+la stessa richiesta corrisponda in modo deterministico alla stessa voce di cache. Ciò
+richiede di stabilire che cosa costituisca l'identità di una richiesta verso un data store
+Copernicus, e come tale identità venga tradotta in un nome di cartella.
+
+L'identità è data dalla terna costituita dal data store interrogato, dal dataset richiesto
+e dalla selezione dei parametri con cui la richiesta è stata formulata. Quest'ultima è
+deliberatamente non tipizzata: come osservato nella Sezione~\ref{sec:copernicus}, i tre
+data store condividono la stessa infrastruttura ma non il catalogo, e ogni dataset ammette
+una selezione di parametri propria; imporre una struttura fissa avrebbe legato il modulo ad un numero limitato di
+dataset, in contrasto con il requisito di operare su più
+dataset senza conoscerne a priori lo schema
+(Sezione~\ref{subsec:requisiti-funzionali}). Come questa terna viene mappata deterministicamente
+in un nome di cartella è discusso nel prossimo capitolo.

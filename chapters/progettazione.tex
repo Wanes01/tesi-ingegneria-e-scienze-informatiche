@@ -55,7 +55,7 @@ mentre tutto ciò che sta a monte della conversione ragiona su numeri.
 
 Fissato il tipo dei campioni, resta da stabilire come rappresentare l'assenza di una
 misura. Le alternative principali esplorate sono tre: un tipo nullabile,
-una astrazione apposita per i dati grezzi letti dalla griglia, oppure un
+un'astrazione apposita per i dati grezzi letti dalla griglia, oppure un
 valore riservato all'interno del tipo stesso.
 
 Il modulo adotta l'ultima, usando \texttt{Double.NaN} come unica rappresentazione interna
@@ -121,17 +121,17 @@ ordinata degli istanti e l'accesso alla griglia corrispondente a una data posizi
 successione. Il primo è ciò che consente a chi la interroga di individuare i due istanti
 adiacenti a quello richiesto; il secondo, di ottenere le griglie corrispondenti.
 
-Come da nome, la sua implementazione \texttt{EagerGridSnapshots}, crea e carica tutte le
+Come da nome, la sua implementazione \texttt{EagerGridSnapshots} crea e carica tutte le
 \texttt{RasterGrid} in memoria in fase di costruzione, la quale avviene a partire da una cartella, e non da
 un singolo file poiché una richiesta a un data store Copernicus
 può, possibilmente, restituire più file, ad esempio un archivio contenente un file per ogni ora.
 
-Un \ac{GRIB} o \ac{NetCDF}, può contenere più variabili distinte: un archivio scaricato da
+Un \ac{GRIB} o \ac{NetCDF} può contenere più variabili distinte: un archivio scaricato da
 un data store Copernicus può includere, ad esempio, sia la temperatura a due metri dal suolo
 sia la velocità del vento nello stesso file. La costruzione di una serie richiede quindi di specificare
 anche quale fra le variabili presenti debba essere estratta:
 è il parametro che determina a quale grandezza fisica la serie risultante fa riferimento.
-Il modo in cui il una variabile viene estratta da un file è discusso nel capitolo
+Il modo in cui una variabile viene estratta da un file è discusso nel capitolo
 \ref{chap:implementazione}.
 \textbf{\emph{(Link al capitolo di implementazione, non ancora presente.)}}
 
@@ -269,7 +269,7 @@ Quando gli viene chiesto il valore in una posizione, il layer:
     \item legge il tempo di simulazione corrente dall'environment, coerentemente con la
     semantica stabilita nella Sezione~\ref{subsec:layer-pull-based};
     \item individua nella serie le due griglie adiacenti che racchiudono il tempo di simulazione corrente, e il peso che
-    ne esprime la posizione relativa fra di essi, nella forma attesa dalle strategie;
+    ne esprime la posizione relativa fra di esse, nella forma attesa dalle strategie;
     \item delega alla strategia di risoluzione la produzione del valore numerico, a partire
     dalle due griglie corrispondenti, dalla posizione richiesta e dal peso temporale;
     \item delega al convertitore la traduzione del valore numerico nel tipo esposto.
@@ -315,8 +315,8 @@ predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefin
     \label{fig:costr-layer}
 \end{figure}
 
-Gli ultimi due costruttori sono pensati per essere dichiarati tramite la configurazione YAML,
-si noti infatti che, tranne \texttt{Environment} passato via iniezione delle dipendenze, tutti gli
+Gli ultimi due costruttori sono pensati per essere dichiarati tramite la configurazione YAML.
+Si noti infatti che, tranne \texttt{Environment} passato via iniezione delle dipendenze, tutti gli
 argomenti dell'ultimo paio di costruttori sono di tipi che il simulatore riesce a riconoscere da YAML,
 quali stringhe, booleani o classi non generiche.
 
@@ -344,7 +344,7 @@ modello del dominio:
 \begin{description}
     \item[\texttt{CacheKey}] la descrizione dei dati da ottenere, che ne costituisce
     l'identità. L'unica capacità che l'astrazione richiede è di sapersi tradurre in un nome
-    di cartella deterministicamente, in modo tale che descrizioni uguali producono lo stesso nome e
+    di cartella deterministicamente, in modo tale che descrizioni uguali producano lo stesso nome e
     descrizioni diverse nomi diversi;
     \item[\texttt{ExternalDataProvider<R>}] la fonte in grado di soddisfare una
     descrizione, depositando i file corrispondenti in una cartella indicata dal chiamante.
@@ -372,7 +372,7 @@ sorgente. Le uniche realizzazioni che conoscono i data store Copernicus sono
 \texttt{CopernicusRequest}, che descrive una richiesta verso di essi, e
 \texttt{CopernicusDataStoreProvider}, che la soddisfa dialogando con il servizio remoto
 secondo il paradigma descritto nella Sezione~\ref{sec:ogc-api-processes}. Estendere il
-sottosistema a una fonte diversa, richiederebbe di realizzare solo la
+sottosistema a una fonte diversa richiederebbe di realizzare solo la
 coppia \texttt{CacheKey} e \texttt{ExternalDataProvider<R>}, e nient'altro.
 
 \subsection{L'identità di una richiesta}

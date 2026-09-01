@@ -123,8 +123,8 @@ fuori di essa non corrisponde ad alcuna misura. Produrre comunque un valore, ad 
 riportando la posizione al bordo della copertura, significherebbe restituire un numero
 plausibile ma privo di fondamento nei dati, tanto più fuorviante quanto più la posizione
 richiesta è lontana dalla regione coperta. Il layer è quindi definito sulla sola
-estensione spaziale dei dati che espone, e non estrapola al di fuori di essa,
-ne consegue che le richieste al layer che utilizzano posizioni esterne alla
+estensione spaziale dei dati che espone, e non estrapola al di fuori di essa.
+Ne consegue che le richieste al layer che utilizzano posizioni esterne alla
 regione geografica di riferimento sono da considerarsi errori di modellazione
 della simulazione.
 
@@ -260,7 +260,7 @@ corrente $t_s \in [t_i, t_{i+1}]$, \cref{fig:temp-interp}.
     \label{fig:temp-interp}
 \end{figure}
 
-e in modo del tutto analogo,
+E in modo del tutto analogo,
 quando la posizione richiesta cade fra le celle della griglia spaziale; formalmente,
 quale valore restituire per la posizione $P = (\text{lat}_{a}, \text{lon}_{b})$ quando
 $\text{lat}_{a} \in [\text{lat}_{i}, \text{lat}_{i+1}]$ e $\text{lon}_{b} \in [\text{lon}_{j}, \text{lon}_{j+1}]$

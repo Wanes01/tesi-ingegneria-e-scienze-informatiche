@@ -108,9 +108,9 @@ delle misurazioni; altri campionamenti, come ad esempio per la portata fluviale,
 possono essere riportati solo in tratti specifici, rendendo la
 griglia sparsa.
 
-Si noti che la distinzione è invisibile a chi usa la griglia: entrambe espongono la stessa
-interfaccia e differiscono solo per il compromesso fra memoria occupata e costo di
-accesso.
+Si noti che la distinzione è invisibile a chi usa la griglia:
+chi vi accede vede unicamente il tipo \texttt{RasterGrid}, e le due realizzazioni
+differiscono solo per il compromesso fra memoria occupata e costo di accesso.
 
 \subsection{La serie temporale di griglie}
 \label{subsec:grid-snapshots}
@@ -133,6 +133,7 @@ anche quale fra le variabili presenti debba essere estratta:
 è il parametro che determina a quale grandezza fisica la serie risultante fa riferimento.
 Il modo in cui il una variabile viene estratta da un file è discusso nel capitolo
 \ref{chap:implementazione}.
+\textbf{\emph{(Link al capitolo di implementazione, non ancora presente.)}}
 
 \section{Le strategie di risoluzione dei valori}
 \label{sec:risoluzione}
@@ -150,9 +151,9 @@ Il requisito si traduce nell'introduzione di un'astrazione per la regola e di
 un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}.
 La \cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 
-\begin{figure}[H]
+\begin{figure}[h]
     \centering
-    \includegraphics[width=0.93\linewidth]{figures/progettazione/interpolazione.png}
+    \includegraphics[width=\linewidth]{figures/progettazione/interpolazione.png}
     \caption[Strategie di interpolazione]{Le strategie di interpolazione spaziale,
     temporale e spazio-temporale, e la loro composizione.}
     \label{fig:uml-interpolazione}
@@ -239,9 +240,9 @@ comportamento.
 Il layer è il punto in cui le diverse aree vengono composte. La
 \cref{fig:aggr-layer} ne riporta le entità con cui collabora.
 
-\begin{figure}[H]
+\begin{figure}[h]
     \centering
-    \includegraphics[width=0.93\linewidth]{figures/progettazione/aggr_layer.png}
+    \includegraphics[width=\linewidth]{figures/progettazione/aggr_layer.png}
     \caption[Il layer Copernicus]{La gerarchia del layer e le sue collaborazioni.}
     \label{fig:aggr-layer}
 \end{figure}
@@ -302,7 +303,7 @@ viene ottenuta, mentre il comportamento successivo è il medesimo.
 La classe \texttt{CopernicusLayer<T>} è generica nel tipo esposto; il modulo fornisce anche
 \texttt{DoubleCopernicusLayer}, che ne fissa il parametro al tipo numerico. La sua
 esistenza è necessaria poiché il meccanismo di caricamento delle simulazioni non è in grado
-di istanziare una classe generica, mentre una sua specializzazione concreta lo è.
+di istanziare una classe generica, mentre può con una sua specializzazione concreta.
 La specializzazione è inoltre il punto in cui i valori predefiniti delle strategie possono
 essere stabiliti, cosa non possibile nella classe generica, non essendo definibile un convertitore
 predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefiniti sono mostrati nella \cref{fig:costr-layer}.

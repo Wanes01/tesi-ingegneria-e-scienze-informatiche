@@ -24,7 +24,7 @@ caricamento delle simulazioni da file YAML.
 \subsection{Il concetto di \emph{layer}}
 \label{subsec:alchemist-layer}
 
-Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione che associa ad
+Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione che associa a
 ogni posizione di tipo \texttt{P} dell'environment un valore di tipo \texttt{T}.
 L'interfaccia si riduce a un solo metodo:
 
@@ -119,7 +119,7 @@ a seconda del dataset e della selezione effettuata in fase di richiesta, in due
 formati binari pensati per la memorizzazione di dati geospaziali multidimensionali
 campionati su una griglia: \ac{GRIB} e \ac{NetCDF}. Entrambi distribuiscono i valori
 di una o più grandezze fisiche su assi di latitudine, longitudine e tempo, dove l'asse temporale
-è una successione di istanti assoluti associati ad un calendario di riferimento. Nel
+è una successione di istanti assoluti associati a un calendario di riferimento. Nel
 dettaglio:
 
 \begin{itemize}
@@ -137,7 +137,7 @@ dettaglio:
     sviluppato e mantenuto da Unidata, un programma comunitario dell'\ac{UCAR},
     orientato all'accesso e alla condivisione di dati scientifici
     multidimensionali. A differenza di \ac{GRIB}, un file \ac{NetCDF} è
-    auto-descrittivo: nomi delle variabili, unità di misura e altri metadati
+    autodescrittivo: nomi delle variabili, unità di misura e altri metadati
     sono incorporati nel file stesso. Il formato di per sé impone però una
     struttura minima; per questo la comunità scientifica ha definito
     convenzioni che ne regolano il contenuto: nome e ordine delle dimensioni,
@@ -179,11 +179,11 @@ Un punto rilevante, con conseguenze dirette sulle scelte implementative,
 riguarda la spaziatura degli assi. La convenzione \ac{CF} richiede che
 latitudine e longitudine siano strettamente monotone, ma non equispaziate, e
 il vincolo non è più stringente sull'asse temporale: un dataset può
-contenere misurazioni ad intervalli di tempo non regolari.
+contenere misurazioni a intervalli di tempo non regolari.
 Nel caso di \ac{GRIB} la questione non si pone nemmeno in
 termini di convenzione, dal momento che un file è una successione di
 griglie indipendenti, ciascuna con il proprio istante di validità: nulla
-nel formato impone che l'insieme risultante sia ordinato, né tantomeno
+nel formato impone che l'insieme risultante sia ordinato, né tanto meno
 regolare.
 
 \section{Il paradigma OGC API Processes}
@@ -199,7 +199,7 @@ Lo schema è descritto, a livello di standard, da \ac{OGC} in \emph{OGC API - Pr
 un job attraverso tre fasi: sottomissione, interrogazione dello stato e recupero dei
 risultati, oltre a definire un insieme di stati che il job attraversa durante l'elaborazione.
 
-La navigazione fra le fasi segue un approccio ipermediale: ogni risposta espone un array
+La navigazione fra le fasi segue un approccio ipermediale: ogni risposta espone un vettore
 \texttt{links} di collegamenti tramite una relazione (\texttt{rel}), fra cui
 \texttt{rel="monitor"} per lo stato del job e \texttt{rel="results"} per i risultati,
 esposto una volta che il job raggiunge uno stato terminale. Lo standard raccomanda di

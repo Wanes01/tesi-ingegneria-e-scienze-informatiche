@@ -43,7 +43,7 @@ Questi aspetti individuano i seguenti sotto-problemi:
     \item[Risoluzione] date una posizione geografica e un istante di simulazione arbitrari, come produrre
     un valore a partire da campioni discreti nello spazio e nel tempo, con possibili misurazioni mancanti;
     \item[Acquisizione] come ottenere questi campioni da un servizio remoto asincrono, in modo
-    riproducibile e verificabile, senza doverli riscaricare ad ogni esecuzione della
+    riproducibile e verificabile, senza doverli riscaricare a ogni esecuzione della
     simulazione.
 \end{description}
 
@@ -90,7 +90,7 @@ corso dell'esecuzione.
 
 Una possibile alternativa progettuale avrebbe affidato a una reazione dedicata 
 il compito di avanzare esplicitamente lo stato del layer, in sincronia
-con l'avanzamento del tempo di simulazione: ad ogni esecuzione, la reazione avrebbe
+con l'avanzamento del tempo di simulazione: a ogni esecuzione, la reazione avrebbe
 aggiornato lo stato corrente esposto dal layer, che si sarebbe poi limitato a restituirlo.
 
 Questa soluzione è stata scartata a favore di una semantica a interrogazione: il layer non
@@ -250,7 +250,7 @@ resterebbero circoscritte a un unico punto del modulo.
 
 Risolta la corrispondenza temporale, resta il secondo problema: quale valore restituire
 quando l'istante richiesto cade fra due istanti campionati; formalmente, quale valore restituire
-quando ad ogni istante $t_{i}$ è associata una griglia spaziale e si ha che il tempo di simulazione
+quando a ogni istante $t_{i}$ è associata una griglia spaziale e si ha che il tempo di simulazione
 corrente $t_s \in [t_i, t_{i+1}]$, \cref{fig:temp-interp}.
 
 \begin{figure}[H]
@@ -309,10 +309,10 @@ Il modulo deve:
     \item permettere di scegliere, fra più alternative, la regola con cui un valore
     viene prodotto a partire dai campioni disponibili, offrendo inoltre la possibilità
     di estendere il sistema con regole personalizzate;
-    \item poiché i file mantengono le misurazioni come numeri in virgola mobile, i quali possono rappresentare
-    anche valori interi, categorici o booleani, bisogna esporre ai nodi un valore il cui tipo non coincida necessariamente con
-    quello numerico con cui la grandezza è registrata nel file, così da poter rappresentare
-    anche grandezze la cui interpretazione non è quantitativa;
+    \item esporre ai nodi un valore il cui tipo non coincida necessariamente con
+    quello numerico con cui la grandezza è registrata nel file (poiché i file mantengono le misurazioni
+    come numeri in virgola mobile, i quali possono rappresentare anche valori interi, categorici o booleani),
+    così da poter rappresentare anche grandezze la cui interpretazione non è puramente quantitativa;
     \item gestire in modo esplicito le celle prive di valore presenti nei dati originali,
     piuttosto che ignorarle o sostituirle silenziosamente;
     \item operare, con lo stesso codice, su più dataset e più data store Copernicus

@@ -100,7 +100,7 @@ futura.
 
 Le due realizzazioni, \texttt{ArrayRasterGrid} e \texttt{MapRasterGrid},
 differiscono unicamente nel modo in cui i campioni sono memorizzati, e definiscono
-rispettivamente un'implementazione per griglie dense ed una
+rispettivamente un'implementazione per griglie dense e una
 per griglie sparse; questa distinzione viene effettuata poiché la densità
 delle griglie può variare notevolmente, ad esempio, la temperatura
 campionata su un tratto prevalentemente terreno riporterà la maggior parte
@@ -168,7 +168,7 @@ che consideri contemporaneamente i campioni delle due griglie, senza risolvere p
 e poi il tempo, non sarebbe esprimibile.
 
 Altre regole di interesse pratico però sono separabili, ovvero, si risolvono collassando
-le due griglie spaziali ad un unico valore ciascuno in funzione della sola posizione,
+le due griglie spaziali a un unico valore ciascuno in funzione della sola posizione,
 per poi decidere il valore finale rispetto alla regola di interpolazione temporale su questi.
 
 Per queste regole, il
@@ -387,7 +387,7 @@ L'identità è data dalla terna costituita dal data store interrogato, dal datas
 e dalla selezione dei parametri con cui la richiesta è stata formulata. Quest'ultima è
 deliberatamente non tipizzata: come osservato nella Sezione~\ref{sec:copernicus}, i tre
 data store condividono la stessa infrastruttura ma non il catalogo, e ogni dataset ammette
-una selezione di parametri propria; imporre una struttura fissa avrebbe legato il modulo ad un numero limitato di
+una selezione di parametri propria; imporre una struttura fissa avrebbe legato il modulo a un numero limitato di
 dataset, in contrasto con il requisito di operare su più
 dataset senza conoscerne a priori lo schema
 (Sezione~\ref{subsec:requisiti-funzionali}). Come questa terna viene mappata deterministicamente

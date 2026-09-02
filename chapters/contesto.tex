@@ -13,43 +13,104 @@ In Alchemist una simulazione è composta da un \emph{environment}, lo spazio in 
 vivono i \emph{nodi}. Ciascun nodo è un contenitore di \emph{molecole} (identificatori,
 l'equivalente di un nome di variabile) a cui sono associate \emph{concentrazioni},
 i valori che esse assumono, e di \emph{reazioni}, gli eventi che ne modificano lo stato
-nel tempo.\footnote{Il metamodello di Alchemist:
-\url{https://alchemistsimulator.github.io/explanation/metamodel/}}
+nel tempo. Il metamodello è mostrato nella \Cref{fig:metamodel}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{figures/alchemist/metamodel.png}
+    \caption[Il metamodello di Alchemist]{Il metamodello di Alchemist. Immagine tratta dal sito ufficiale del simulatore\protect\footnotemark.}
+    \label{fig:metamodel}
+\end{figure}
+\footnotetext{Spiegazione del metamodello di Alchemist: \url{https://alchemistsimulator.github.io/explanation/metamodel/}.}
+
+Alchemist è impiegato come strumento in diversi lavori di ricerca.
+In~\cite{aguzzi2022dynamic} è stato usato per simulare, sull'area urbana di Toronto,
+un sistema \ac{IoT} decentralizzato di allerta alluvionale: i valori di pioggia
+misurati da una rete di pluviometri, ricavata da dati reali, vengono aggregati
+in modo distribuito per pre-allertare le stazioni dei vigili del fuoco prossime alle
+zone a rischio. In~\cite{audrito2021optimal} il simulatore costituisce invece l'intero
+apparato sperimentale del lavoro: viene utilizzato sia per confrontare algoritmi
+decentralizzati di raccolta e aggregazione dei dati su reti di dispositivi mobili,
+esplorando parametri quali densità, diametro della rete e velocità
+di movimento, sia per uno studio in cui gli stessi algoritmi vengono applicati
+al tracciamento di una folla in un parco cittadino.
 
 Le sezioni che seguono si limitano agli elementi necessari a collocare il lavoro
 descritto in questa tesi: la nozione di layer, il modo in cui il tempo di simulazione è
 reso accessibile ai componenti, il supporto geospaziale già disponibile e il sistema di
 caricamento delle simulazioni da file YAML.
 
+\subsection{Il motore di simulazione}
+\label{subsec:alchemist-lifecycle}
+
+Una simulazione Alchemist nasce da una configurazione dichiarativa
+(Sezione~\ref{subsec:alchemist-loader}), a partire dalla quale sono istanziati
+l'environment, i layer, i nodi con le rispettive reazioni e contenuti. Il modello
+che ne risulta descrive lo stato iniziale della simulazione.
+
+A metterlo in esecuzione è il motore, un simulatore a eventi discreti la cui implementazione si
+fonda sul \emph{Next Reaction Method} di Gibson e Bruck~\cite{gibson}. Il motore
+procede per passi: a ogni passo viene selezionata, fra tutte le reazioni
+schedulate, quella il cui istante di esecuzione è il più vicino; il tempo di simulazione
+assume tale istante; la reazione viene eseguita, modificando lo stato del modello;
+infine vengono rischedulate le reazioni la cui esecuzione dipende da quella appena
+avvenuta. Il tempo non avanza quindi a passi costanti, ma per salti da un evento al
+successivo, e fra due eventi consecutivi lo stato del modello resta invariato.
+
+Il punto d'ingresso del motore è la \texttt{Simulation}, che custodisce il tempo di simulazione
+corrente ed espone i comandi per avviare, sospendere e arrestare l'esecuzione. Lo stato
+in cui essa si trova è descritto da un insieme predefinito di valori, dall'inizializzazione
+alla terminazione, ed è interrogabile in qualunque momento.
+
 \subsection{Il concetto di \emph{layer}}
 \label{subsec:alchemist-layer}
 
-Un \texttt{Layer<T, P>} è, nel modello di Alchemist, una funzione che associa a
-ogni posizione di tipo \texttt{P} dell'environment un valore di tipo \texttt{T}.
-L'interfaccia si riduce a un solo metodo:
+Le molecole e le concentrazioni descrivono lo stato interno dei singoli nodi. Alcune
+grandezze, però, non appartengono ad alcun nodo in particolare: sono proprietà
+dell'ambiente stesso, definite in ogni suo punto indipendentemente dal fatto che vi si
+trovi o meno un nodo a percepirle. La temperatura, l'intensità luminosa, la
+concentrazione di un inquinante in atmosfera sono esempi di questo tipo: un nodo che
+si muove nello spazio ne osserva valori diversi non perché il proprio stato sia
+cambiato, ma perché è cambiata la sua posizione.
+
+Alchemist modella queste grandezze attraverso il concetto di \emph{layer}: una
+sovrapposizione di dati distribuita sull'ambiente, associata a una molecola e
+interrogabile da qualunque punto dello spazio. Formalmente, un \texttt{Layer<T, P>} è
+una funzione che associa a ogni posizione di tipo \texttt{P} dell'environment un
+valore di tipo \texttt{T}. L'interfaccia si riduce a un solo metodo:
 
 \lstinputlisting[language=Java,label={lst:layer-interface}]{listings/Layer.java}
 
-Un nodo può quindi interrogare un layer con
-la propria posizione corrente e ottenere il
-valore che il layer associa a quel punto. Le implementazioni preesistenti in Alchemist
-realizzano tutte layer sintetici (ad esempio \texttt{BidimensionalGaussianLayer},
-una distribuzione gaussiana bidimensionale centrata su un punto) non adatti a dati misurati,
-distribuiti in formati specialistici e campionati su griglie irregolari nello spazio e nel tempo.
+Un nodo può quindi interrogare un
+layer con la propria posizione corrente e ottenere il valore che il layer associa a
+quel punto, usandolo per esempio come stimolo a cui reagire.
+
+Le implementazioni preesistenti in Alchemist realizzano però tutte layer
+che producono valori sintetici, determinati da una regola fissata alla costruzione, come
+\sloppypar{\texttt{BidimensionalGaussianLayer}}, che descrive una distribuzione
+gaussiana bidimensionale centrata su un punto. Queste realizzazioni sono adeguate a
+rappresentare fenomeni il cui comportamento varia rispetto a una formula,
+ma non un fenomeno misurato: i dati ambientali reali non sono
+espressi da una funzione, bensì campionati su griglie spaziali a risoluzione
+finita, disponibili solo in corrispondenza di determinati istanti e distribuiti in
+formati binari specialistici.
 
 \subsection{Il tempo di simulazione}
 \label{subsec:alchemist-time}
 
-Alchemist rappresenta il tempo corrente di una simulazione come un valore scalare di tipo
+Alchemist rappresenta l'istante corrente di una simulazione come un valore scalare di tipo
 \texttt{Time}, privo di un'unità di misura intrinseca: la sua interpretazione è una convenzione
 lasciata al modellista della simulazione (ad esempio secondi, ore, giorni), non
-un vincolo imposto dal simulatore. Un nodo, o un componente che condivide la stessa esigenza
-percettiva, come un layer (Sezione~\ref{subsec:alchemist-layer}), può interrogare
-la \texttt{Simulation}, una proprietà dell'environment, per ottenerlo, con la possibilità
-che tale informazione non sia ancora
-disponibile nelle fasi iniziali del ciclo di vita di una simulazione. 
-%Le conseguenze di questo vincolo sul design sono discusse nel
-%Capitolo~\ref{chap:progettazione}.
+un vincolo imposto dal simulatore; il suo tempo parte da zero e cresce con l'avanzare degli eventi.
+
+Il tempo di simulazione appartiene al motore, che viene creato solo quando il modello è
+già completo. Un componente, nel momento in cui viene costruito, non ha quindi ancora
+alcun tempo da leggere: può ottenerlo soltanto durante l'esecuzione, interrogando la
+\texttt{Simulation} attraverso l'environment.
+
+Un layer, in particolare, riceve come unico argomento la posizione da cui è interrogato
+(Sezione~\ref{subsec:alchemist-layer}): se il valore che restituisce dipende anche dal
+tempo, è il layer stesso a doverselo procurare per questa via.
 
 \subsection{Il supporto geospaziale preesistente}
 \label{subsec:alchemist-osm}
@@ -57,38 +118,81 @@ disponibile nelle fasi iniziali del ciclo di vita di una simulazione.
 Alchemist offre un supporto già maturo per simulazioni su cartografia
 reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap e collocare i
 nodi al suo interno, vincolandone il movimento a una rete stradale e delegando il calcolo
-dei percorsi a GraphHopper. Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
+dei percorsi a GraphHopper~\footnote{Motore di calcolo dei percorsi GraphHopper: \url{https://www.graphhopper.com/}.}.
+Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
 latitudine e longitudine. È questa asimmetria che fa nascere il problema affrontato in questa tesi:
-un simulatore capace di collocare e muovere con precisione i propri agenti nello spazio geografico reale, ma
-non dotato di un modo per esporre loro cosa vi stia accadendo.
+un simulatore capace di collocare e muovere con precisione i propri nodi nello spazio geografico reale, ma
+non dotato di un modo per far percepire loro misurazioni campionate nello spazio.
 
 \subsection{Il caricamento delle simulazioni da YAML}
 \label{subsec:alchemist-loader}
 
 Una simulazione Alchemist si specifica tipicamente in modo dichiarativo, in un file YAML
 che indica, per ciascun componente, il nome della classe che lo implementa e i parametri
-con cui costruirlo. Il layer gaussiano introdotto nella
-Sezione~\ref{subsec:alchemist-layer} si dichiara così:
+con cui costruirlo. Questo meccanismo, basato sulla reflection, non è un semplice dettaglio
+di configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
+a essere istanziata da YAML.
+
+Il layer gaussiano introdotto nella Sezione~\ref{subsec:alchemist-layer} è costruito dal
+seguente costruttore, di sei parametri, di cui il primo (\texttt{baseline}) e l'ultimo
+(\texttt{sigmaY}) sono opzionali:
+
+\lstinputlisting[language=Kotlin,label={lst:bidimensional-gaussian-layer-kotlin}]{listings/BidimensionalGaussianLayer.kt}
+
+Il loader individua la classe indicata dalla chiave \texttt{type}, ne seleziona un
+costruttore compatibile con gli argomenti forniti e lo invoca tramite reflection. Nella
+forma più diretta, i parametri sono specificati posizionalmente:
 
 \lstinputlisting[language=YAML,label={lst:bidimensional-gaussian-layer}]{listings/bidimensional.yml}
 
-La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
-nell'environment, mentre \texttt{parameters} elenca posizionalmente gli argomenti del
-costruttore. Questo meccanismo, basato sulla riflessione, non è un semplice dettaglio di
-configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
-a essere istanziata da YAML. %, e sono analizzati nel Capitolo~\ref{chap:progettazione}.
+la chiave \texttt{molecule} indica la molecola a cui il layer viene associato
+nell'environment, mentre \texttt{parameters} elenca gli argomenti del costruttore. I
+quattro valori forniti vengono associati, nell'ordine, a \texttt{centerX},
+\texttt{centerY}, \texttt{norm} e \texttt{sigmaX}, mentre \texttt{baseline} e
+\texttt{sigmaY} assumono i rispettivi valori di default. La costruzione equivalente, se
+scritta direttamente in Kotlin, sarebbe:
+
+\lstinputlisting[language=Kotlin,label={lst:bidimensional-gaussian-equivalent}]{listings/bidimensional-equivalent.kt}
+
+Che i parametri opzionali possano essere omessi non è però una capacità del loader: gli
+argomenti di default sono una nozione di Kotlin, invisibile alla reflection della \ac{JVM}, e a
+renderli accessibili è l'annotazione \texttt{@JvmOverloads} presente nel
+costruttore, la quale istruisce il compilatore a generare costruttori aggiuntivi, ottenuti
+rimuovendo i parametri dotati di default a partire dall'ultimo. Ne
+discende che da YAML si può omettere soltanto un
+suffisso della lista dei parametri opzionali. Per specificare \texttt{sigmaY} occorrerebbe
+fornire anche \texttt{baseline}, che lo precede.
+L'ordine in cui i parametri opzionali sono dichiarati non è quindi indifferente.
+
+Oltre che per via posizionale, i parametri possono essere specificati anche tramite il
+nome dell'argomento a cui si riferiscono:
+
+\lstinputlisting[language=YAML,label={lst:bidimensional-gaussian-layer-named}]{listings/bidimensional-names.yml}
+
+Questa forma elimina l'ambiguità sull'ordine e rende esplicito a quale parametro ciascun
+valore si riferisca, ma resta soggetta al vincolo appena descritto.
+
+Non tutti i parametri, infine, provengono dal file YAML: le entità già costruite al momento
+dell'istanziazione, fra cui l'environment stesso, sono iniettate automaticamente laddove un
+parametro ne dichiari il tipo, e non compaiono quindi fra quelli dichiarati nella
+configurazione.
+
+L'istanza risultante viene registrata, nell'environment, in corrispondenza della molecola
+indicata dalla chiave \texttt{molecule} (\texttt{moleculeName}).
 
 \section{Il programma Copernicus e i suoi servizi di dati}
 \label{sec:copernicus}
 
-Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
+Copernicus~\footnote{Il programma Copernicus: \url{https://www.copernicus.eu/it}.}
+è il programma di osservazione della Terra dell'Unione Europea, articolato in
 servizi tematici. Fra questi, il \ac{CEMS} %\footnote{\url{https://emergency.copernicus.eu/}}
 fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
 protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa
 tesi.
 
 L'accesso programmatico ai dati non è però organizzato per servizio: avviene attraverso
-una famiglia di \emph{data store} gestiti dall'\ac{ECMWF} e costruiti sulla stessa
+una famiglia di \emph{data store} gestiti dall'\ac{ECMWF}~\footnote{Centro Europeo per le previsioni meteorologiche a medio termine: \url{https://www.ecmwf.int/}}
+e costruiti sulla stessa
 infrastruttura software, differenziati per host e per il dominio dei dataset che
 espongono:
 
@@ -108,7 +212,7 @@ catalogo dei dataset disponibili.
 
 L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
-locale nel formato \texttt{.cdsapirc}\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
+locale nel formato \texttt{.cdsapirc}~\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
 lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
 
 \section{Formati e convenzioni per dati raster geospaziali}
@@ -130,7 +234,7 @@ dettaglio:
     la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
     definito da tabelle esterne, standard o specifiche del centro meteorologico di
     origine. Ad esempio, nella tabella 128 di \ac{ECMWF} il codice 167 identifica la
-    temperatura registrata a due metri dal suolo\footnote{Tabella ECMWF per i file GRIB che esprimono la temperatura a due metri dal suolo: \url{https://codes.ecmwf.int/grib/param-db/167}},
+    temperatura registrata a due metri dal suolo~\footnote{Tabella ECMWF per i file GRIB che esprimono la temperatura a due metri dal suolo: \url{https://codes.ecmwf.int/grib/param-db/167}},
     ma la corrispondenza fra codice e
     grandezza fisica non è ricavabile dal solo contenuto del file;
 \item \ac{NetCDF}, distribuito dai data store nelle versioni NetCDF3 e NetCDF4, è un formato
@@ -142,7 +246,7 @@ dettaglio:
     struttura minima; per questo la comunità scientifica ha definito
     convenzioni che ne regolano il contenuto: nome e ordine delle dimensioni,
     attributi obbligatori, semantica degli assi. La più diffusa, e adottata
-    dagli store di riferimento, è la convenzione \ac{CF}~\cite{cf_conventions}, \cref{fig:netcdf-structure}.
+    dagli store di riferimento, è la convenzione \ac{CF}~\cite{cf_conventions}, \Cref{fig:netcdf-structure}.
 \end{itemize}
 
 \begin{figure}[H]
@@ -190,26 +294,36 @@ regolare.
 \label{sec:ogc-api-processes}
 
 Le richieste di dati verso i tre data store Copernicus sono operazioni di durata variabile,
-da qualche secondo a diverse decine di minuti in base all'entità della richiesta, e vengono quindi
-gestite in modo asincrono: il client sottomette una richiesta, riceve
-l'identificativo di un job e ne interroga periodicamente lo stato fino al suo completamento.
+da qualche secondo a diverse decine di minuti in base all'entità della richiesta, e vengono
+quindi gestite in modo asincrono: il client sottomette una richiesta, ottiene l'indirizzo a
+cui interrogarne lo stato, e lo interpella periodicamente fino al completamento
+dell'elaborazione.
 
-Lo schema è descritto, a livello di standard, da \ac{OGC} in \emph{OGC API - Processes
-- Part 1: Core}~\cite{ogc_api_processes_core}. Lo standard definisce il ciclo di vita di
-un job attraverso tre fasi: sottomissione, interrogazione dello stato e recupero dei
-risultati, oltre a definire un insieme di stati che il job attraversa durante l'elaborazione.
+Lo schema è descritto, a livello di standard, da \ac{OGC} in \emph{OGC API - Processes -
+Part 1: Core}~\cite{ogc_api_processes_core}, che specifica un'interfaccia REST per
+l'esecuzione di elaborazioni remote e per il recupero dei relativi risultati. Il ciclo di
+vita di un job si articola in tre fasi:
+la sottomissione, tramite una richiesta \texttt{POST} all'endpoint di esecuzione del
+processo; l'interrogazione dello stato, il cui indirizzo lo standard prescrive sia
+comunicato al client nell'intestazione \texttt{Location} della risposta alla
+sottomissione; e il recupero dei risultati, disponibile una volta che il job ha raggiunto
+uno stato terminale. Lo standard definisce inoltre l'insieme degli stati che un job può
+assumere durante l'elaborazione, distinguendo quelli intermedi da quelli terminali, ai
+quali è associata la disponibilità dei risultati o della descrizione dell'errore.
 
-La navigazione fra le fasi segue un approccio ipermediale: ogni risposta espone un vettore
-\texttt{links} di collegamenti tramite una relazione (\texttt{rel}), fra cui
-\texttt{rel="monitor"} per lo stato del job e \texttt{rel="results"} per i risultati,
-esposto una volta che il job raggiunge uno stato terminale. Lo standard raccomanda di
-seguire questi collegamenti invece di ricostruire autonomamente gli URL a partire
-dall'identificativo del job.
+Ogni risposta include, oltre ai dati che rappresenta, un vettore \texttt{links}. Ciascun
+collegamento è accompagnato da una relazione (\texttt{rel}), un'etichetta che ne dichiara
+il significato: quale risorsa il collegamento raggiunga e in che rapporto stia con quella
+corrente. Lo standard stabilisce quali relazioni usare per le risorse che definisce, ad
+esempio \texttt{status} per lo stato di un job, e consente alle implementazioni di
+aggiungere collegamenti propri, oltre a quelli previsti.
 
-Per gli errori, lo standard rimanda al formato definito dalla RFC 7807~\cite{rfc7807},
-che uniforma il corpo delle risposte di errore.
+Per gli errori, lo standard raccomanda, senza imporlo, il formato \emph{Problem Details}
+definito dalla RFC 7807~\cite{rfc7807}, che uniforma la struttura del corpo delle risposte
+di errore e la rende interpretabile.
 
-In che misura il comportamento effettivo dei data store \ac{ECMWF} aderisca a questo
-standard, e in che misura se ne discosti, è discusso nei
+I data store \ac{ECMWF} si ispirano a questo paradigma, ma se ne discostano su più punti,
+alcuni dei quali non documentati. Tali scostamenti hanno determinato scelte progettuali e
+implementative del sottosistema di acquisizione, e sono discussi nei
 Capitoli~\ref{chap:progettazione} e~\ref{chap:implementazione}.
 \emph{\textbf{("??" sono i link ai capitoli di progettazione e implementazione, attualmente assenti)}}

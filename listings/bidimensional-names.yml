@@ -1,0 +1,8 @@
+layers:
+  - type: BidimensionalGaussianLayer
+    molecule: moleculeName
+    parameters:
+      centerX: 10
+      centerY: 10
+      norm: 20
+      sigmaX: 8

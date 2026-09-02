@@ -71,7 +71,7 @@ al convertitore, il quale decide cosa esporre (Sezione~\ref{subsec:conversione})
 
 Questa sezione descrive le astrazioni che danno forma in memoria alle entità
 \texttt{RasterGrid} e \texttt{GridSnapshots} individuate nel modello del dominio
-(Sezione~\ref{sec:modello-dominio}). La \cref{fig:uml-rappresentazione} le riporta.
+(Sezione~\ref{sec:modello-dominio}). La \Cref{fig:uml-rappresentazione} le riporta.
 
 \begin{figure}[H]
     \centering
@@ -149,7 +149,7 @@ valore restituito dal layer: la traduzione da un \texttt{Double} al tipo esposto
 
 Il requisito si traduce nell'introduzione di un'astrazione per la regola e di
 un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}.
-La \cref{fig:uml-interpolazione} riporta la gerarchia risultante.
+La \Cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 
 \begin{figure}[h]
     \centering
@@ -172,14 +172,14 @@ le due griglie spaziali a un unico valore ciascuno in funzione della sola posizi
 per poi decidere il valore finale rispetto alla regola di interpolazione temporale su questi.
 
 Per queste regole, il
-modulo introduce \texttt{SeparableSpatioTemporalInterpolation}, che realizza l'astrazione
+modulo introduce \sloppypar{\texttt{SeparableSpatioTemporalInterpolation}}, che realizza l'astrazione
 principale componendo due strategie indipendenti: una spaziale, che risolve la posizione
 su ciascuna delle due griglie, e una temporale, che combina i due valori così ottenuti
 secondo il peso.
 
 Le realizzazioni fornite rispondono alla distinzione fra grandezze che ammettono valori intermedi e
 grandezze che non li ammettono. Sul dominio spaziale, \texttt{BilinearInterpolation}
-produce una media pesata dei quattro campioni che circondano la posizione (si veda come riferimento la \cref{fig:spatial-interp}), adatta a
+produce una media pesata dei quattro campioni che circondano la posizione (si veda come riferimento la \Cref{fig:spatial-interp}), adatta a
 grandezze continue, mentre \texttt{NearestInterpolation} seleziona il campione della cella
 più vicina, scelta ammissibile per grandezze categoriche. Sul dominio temporale,
 \texttt{LinearInterpolation} combina i due campioni in proporzione al peso, mentre
@@ -238,7 +238,7 @@ comportamento.
 \label{sec:layer}
 
 Il layer è il punto in cui le diverse aree vengono composte. La
-\cref{fig:aggr-layer} ne riporta le entità con cui collabora.
+\Cref{fig:aggr-layer} ne riporta le entità con cui collabora.
 
 \begin{figure}[h]
     \centering
@@ -306,7 +306,7 @@ esistenza è necessaria poiché il meccanismo di caricamento delle simulazioni n
 di istanziare una classe generica, mentre può con una sua specializzazione concreta.
 La specializzazione è inoltre il punto in cui i valori predefiniti delle strategie possono
 essere stabiliti, cosa non possibile nella classe generica, non essendo definibile un convertitore
-predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefiniti sono mostrati nella \cref{fig:costr-layer}.
+predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefiniti sono mostrati nella \Cref{fig:costr-layer}.
 
 \begin{figure}[H]
     \centering
@@ -325,7 +325,7 @@ quali stringhe, booleani o classi non generiche.
 
 L'ultima area risponde al sotto-problema di acquisizione: ottenere i dati da un servizio
 remoto in modo riproducibile e verificabile, senza riscaricarli a ogni esecuzione. La
-\cref{fig:uml-acquisizione} ne riporta le astrazioni e le realizzazioni.
+\Cref{fig:uml-acquisizione} ne riporta le astrazioni e le realizzazioni.
 
 \begin{figure}[H]
     \centering

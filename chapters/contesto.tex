@@ -18,13 +18,13 @@ nel tempo. Il metamodello è mostrato nella \Cref{fig:metamodel}.
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{figures/alchemist/metamodel.png}
-    \caption[Il metamodello di Alchemist]{Il metamodello di Alchemist. Immagine tratta dal sito ufficiale del simulatore\protect\footnotemark.}
+    \caption[Il metamodello di Alchemist]{Il metamodello di Alchemist. Immagine tratta dal sito ufficiale del simulatore~\protect\footnotemark.}
     \label{fig:metamodel}
 \end{figure}
 \footnotetext{Spiegazione del metamodello di Alchemist: \url{https://alchemistsimulator.github.io/explanation/metamodel/}.}
 
 Alchemist è impiegato come strumento in diversi lavori di ricerca.
-In~\cite{aguzzi2022dynamic} è stato usato per simulare, sull'area urbana di Toronto,
+Ad esempio, in~\cite{aguzzi2022dynamic} è stato usato per simulare, sull'area urbana di Toronto,
 un sistema \ac{IoT} decentralizzato di allerta alluvionale: i valori di pioggia
 misurati da una rete di pluviometri, ricavata da dati reali, vengono aggregati
 in modo distribuito per pre-allertare le stazioni dei vigili del fuoco prossime alle
@@ -282,7 +282,7 @@ cartesiano di due assi indipendenti di latitudine e longitudine.
 Un punto rilevante, con conseguenze dirette sulle scelte implementative,
 riguarda la spaziatura degli assi. La convenzione \ac{CF} richiede che
 latitudine e longitudine siano strettamente monotone, ma non equispaziate, e
-il vincolo non è più stringente sull'asse temporale: un dataset può
+sull'asse temporale il vincolo non è più forte: un dataset può
 contenere misurazioni a intervalli di tempo non regolari.
 Nel caso di \ac{GRIB} la questione non si pone nemmeno in
 termini di convenzione, dal momento che un file è una successione di
@@ -323,7 +323,6 @@ definito dalla RFC 7807~\cite{rfc7807}, che uniforma la struttura del corpo dell
 di errore e la rende interpretabile.
 
 I data store \ac{ECMWF} si ispirano a questo paradigma, ma se ne discostano su più punti,
-alcuni dei quali non documentati. Tali scostamenti hanno determinato scelte progettuali e
-implementative del sottosistema di acquisizione, e sono discussi nei
-Capitoli~\ref{chap:progettazione} e~\ref{chap:implementazione}.
-\emph{\textbf{("??" sono i link ai capitoli di progettazione e implementazione, attualmente assenti)}}
+alcuni dei quali non documentati. Tali scostamenti hanno determinato scelte
+implementative del sottosistema di acquisizione, e sono discussi nel Capitolo ~\ref{chap:implementazione}.
+\emph{\textbf{("??" = link al capitolo di implementazione, attualmente assente)}}

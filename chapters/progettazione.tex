@@ -86,7 +86,7 @@ Questa sezione descrive le astrazioni che danno forma in memoria alle entità
 
 Una griglia raster è definita da due assi indipendenti, di latitudini e di longitudini, e
 dai campioni collocati sulle celle che ne risultano. I due assi sono esposti come vettori di
-\texttt{Double}; si richiede che gli assi siano monotoni ma non che siano equispaziati, per cui la posizione
+\texttt{Double}; si richiede che gli assi siano strettamente monotoni ma non che siano equispaziati, per cui la posizione
 di ciascuna coordinata non è ricavabile per via aritmetica e va conservata esplicitamente.
 Di conseguenza, l'individuazione della cella che contiene una data coordinata è una
 ricerca sull'asse anziché un calcolo.
@@ -121,17 +121,25 @@ ordinata degli istanti e l'accesso alla griglia corrispondente a una data posizi
 successione. Il primo è ciò che consente a chi la interroga di individuare i due istanti
 adiacenti a quello richiesto; il secondo, di ottenere le griglie corrispondenti.
 
-Come da nome, la sua implementazione \texttt{EagerGridSnapshots} crea e carica tutte le
-\texttt{RasterGrid} in memoria in fase di costruzione, la quale avviene a partire da una cartella, e non da
-un singolo file poiché una richiesta a un data store Copernicus
-può, possibilmente, restituire più file, ad esempio un archivio contenente un file per ogni ora.
+La realizzazione fornita, \texttt{EagerGridSnapshots}, costruisce l'intera serie in memoria
+al momento della costruzione, leggendo tutti i file presenti in una cartella. La scelta
+risponde al requisito sul costo dell'interrogazione: spostando l'intero accesso al file
+system nella fase di costruzione, ogni successiva lettura del layer opera su strutture già
+residenti in memoria, con un costo indipendente dal formato di origine e dal numero di
+file da cui la serie è stata ricavata.
+
+Il prezzo è che l'occupazione di memoria cresce con l'estensione della serie e dell'area
+geografica di riferimento. Il vincolo è ritenuto accettabile: le richieste sono formulate dal modellista in
+funzione della simulazione che intende condurre. L'astrazione \texttt{GridSnapshots} non impone comunque questa
+strategia, e una realizzazione che carichi le griglie su richiesta è possibile senza
+alcuna modifica al layer.
 
 Un \ac{GRIB} o \ac{NetCDF} può contenere più variabili distinte: un archivio scaricato da
 un data store Copernicus può includere, ad esempio, sia la temperatura a due metri dal suolo
 sia la velocità del vento nello stesso file. La costruzione di una serie richiede quindi di specificare
 anche quale fra le variabili presenti debba essere estratta:
 è il parametro che determina a quale grandezza fisica la serie risultante fa riferimento.
-Il modo in cui una variabile viene estratta da un file è discusso nel capitolo
+Il modo in cui una variabile viene estratta da un file è discusso nel Capitolo
 \ref{chap:implementazione}.
 \textbf{\emph{(Link al capitolo di implementazione, non ancora presente.)}}
 
@@ -200,6 +208,11 @@ si è scelto di propagare il valore mancante se almeno uno dei quattro campioni 
 la posizione non è presente, e viene allo stesso modo propagato da \texttt{LinearInterpolation}
 se uno dei due valori spazialmente risolti è assente.
 
+La verifica che la posizione richiesta ricada entro l'estensione coperta dalle
+griglie è compito del layer, e precede l'invocazione della strategia.
+Le realizzazioni possono quindi assumere che gli argomenti ricevuti siano ammissibili,
+e concentrarsi sulla sola regola di combinazione dei campioni.
+
 \subsection{La conversione del valore}
 \label{subsec:conversione}
 
@@ -266,6 +279,9 @@ nell'ordine corretto.
 Quando gli viene chiesto il valore in una posizione, il layer:
 
 \begin{enumerate}
+    \item verifica che la posizione richiesta ricada nell'estensione spaziale coperta dai dati,
+    secondo quanto stabilito nella Sezione~\ref{subsec:estensione-spaziale}, e fallisce
+    esplicitamente in caso contrario;
     \item legge il tempo di simulazione corrente dall'environment, coerentemente con la
     semantica stabilita nella Sezione~\ref{subsec:layer-pull-based};
     \item individua nella serie le due griglie adiacenti che racchiudono il tempo di simulazione corrente, e il peso che
@@ -290,9 +306,9 @@ assume già disponibile.
     \item[Da una cartella locale] il layer riceve il percorso di una cartella contenente
     file già disponibili, ne costruisce la serie di griglie e prosegue come nel caso precedente. È la
     modalità adatta a dati ottenuti per altra via, o già presenti sulla macchina;
-    \item[Da un data store remoto] il layer riceve la descrizione di una richiesta verso un
-    data store Copernicus e la sottopone al gestore della cache, che restituisce una
-    cartella, riconducendo al caso precedente.
+    \item[Da un data store remoto] il layer riceve gli elementi che identificano una richiesta
+    verso un data store Copernicus, costruisce da essi la richiesta e il gestore della cache a
+    cui sottoporla, e ne ottiene una cartella, riconducendosi al caso precedente.
 \end{description}
 
 Si sceglie quindi di stratificare le modalità di costruzione: ciascuna produce
@@ -315,10 +331,71 @@ predefinito verso un tipo arbitrario. I tre costruttori e i loro valori predefin
     \label{fig:costr-layer}
 \end{figure}
 
-Gli ultimi due costruttori sono pensati per essere dichiarati tramite la configurazione YAML.
-Si noti infatti che, tranne \texttt{Environment} passato via iniezione delle dipendenze, tutti gli
-argomenti dell'ultimo paio di costruttori sono di tipi che il simulatore riesce a riconoscere da YAML,
-quali stringhe, booleani o classi non generiche.
+Gli ultimi due costruttori sono pensati per essere dichiarati tramite la configurazione
+YAML. Si noti infatti che, tranne \texttt{Environment} passato via iniezione delle
+dipendenze, tutti i loro argomenti sono di tipi che il simulatore riesce a riconoscere,
+quali stringhe, booleani o classi non generiche. Ne consegue una convenzione: gli
+argomenti che denotano durate o istanti sono dichiarati come stringhe, nel formato definito
+dallo standard ISO 8601~\cite{iso8601}, compatto e convertibile senza ambiguità nei tipi
+corrispondenti; la conversione avviene all'interno del costruttore. Lo stesso vale per i
+percorsi.
+
+Il secondo costruttore assume che i file siano già presenti sulla macchina, e ne riceve la
+collocazione in \texttt{dataDirectory}. Tutti i file contenuti nella cartella concorrono a
+formare un'unica serie, e devono quindi essere omogenei fra loro nel senso stabilito nella
+Sezione~\ref{sec:modello-dominio}: relativi alla stessa grandezza e agli stessi assi
+spaziali. I restanti argomenti riguardano l'interpretazione di quei file:
+
+\begin{description}
+    \item[\texttt{timeScale}] la durata reale rappresentata da un'unità di tempo simulato,
+    che insieme all'origine stabilisce la corrispondenza fra i due domini temporali
+    (Sezione~\ref{subsec:corrispondenza-temporale});
+    \item[\texttt{timeOrigin}] l'istante reale a cui corrisponde lo zero del tempo di
+    simulazione. È nullo per default: in tal caso si assume come origine il primo istante
+    esposto dalla serie, ovvero la simulazione ha inizio nel momento in cui hanno inizio i
+    dati, che è la convenzione attesa nel caso più comune;
+    \item[\texttt{variable}] la grandezza da estrarre dai file. Un file può contenerne più
+    di una, e in tal caso l'indicazione è necessaria per stabilire a cosa la serie faccia
+    riferimento. È nulla per default: quando esiste un'unica variabile definita sui tre assi
+    di interesse, questa viene rilevata automaticamente.
+\end{description}
+
+Il terzo costruttore riceve la descrizione di come ottenere i dati.
+Tre argomenti individuano la richiesta: \texttt{endpoint}, il data store Copernicus da
+interpellare; \texttt{dataset}, il dataset da cui estrarre i dati; e \texttt{inputsFile},
+il percorso di un file JSON contenente la selezione di parametri con cui la richiesta è
+formulata. Altri due argomenti sono destinati al gestore la cache: \texttt{cacheDirectory}, la cartella radice sotto
+la quale i dati vengono conservati, e \texttt{cdsApiRcFile}, il percorso del file da cui
+leggere la chiave ECMWF. I restanti argomenti coincidono con quelli del costruttore
+precedente, dal momento che una volta ottenuti i file il comportamento è il medesimo.
+
+La selezione dei parametri risiede in un file esterno, e non è espressa direttamente nella
+configurazione della simulazione, questo poiché alcuni dataset espongono dei parametri
+il cui nome coincide con le parole riservate dal meccanismo di caricamento da YAML,
+come ad esempio ``\texttt{type}''.
+
+A determinare l'identità della richiesta, assieme a \texttt{endpoint} e \texttt{dataset},
+e di conseguenza la voce di cache corrispondente, è il contenuto di
+tale file e non il suo percorso: due file distinti ma di contenuto equivalente individuano
+la stessa voce, mentre una modifica al contenuto ne individua una diversa.
+
+Resta \texttt{checkMd5}, che stabilisce se l'integrità dei file acquisiti debba essere
+verificata. Il data store, prima della consegna, espone il digest MD5 di ciò che si sta per
+scaricare, contro il quale è possibile confrontare il digest calcolato localmente. In prove
+sperimentali ripetute, tuttavia, alcune acquisizioni hanno prodotto file integri e
+correttamente leggibili a fronte di un digest esposto dal servizio non corrispondente a
+quello calcolato localmente, e la discrepanza non è risultata riconducibile alla forma con
+cui il valore viene rappresentato. Il controllo non può quindi costituire l'unica
+condizione di accettazione, e viene reso disattivabile; la scelta è coerente con il client
+Python ufficiale di ECMWF, che verifica la sola dimensione dei file consegnati.
+
+L'argomento è dichiarato obbligatorio, a differenza di tutti quelli che lo seguono. La
+ragione non è di dominio, ma discende dal meccanismo con cui i costruttori sono resi
+accessibili da YAML (Sezione~\ref{subsec:alchemist-loader}): rendendolo opzionale, la
+rimozione progressiva dei parametri dotati di default produrrebbe, a partire dal terzo
+costruttore, una firma composta da un environment e tre stringhe, identica a una di quelle
+generate dal secondo. Le due sarebbero indistinguibili sulla \ac{JVM}, e la classe
+non compilerebbe.
 
 \section{Il sottosistema di acquisizione dati}
 \label{sec:acquisizione}
@@ -374,6 +451,14 @@ sorgente. Le uniche realizzazioni che conoscono i data store Copernicus sono
 secondo il paradigma descritto nella Sezione~\ref{sec:ogc-api-processes}. Estendere il
 sottosistema a una fonte diversa richiederebbe di realizzare solo la
 coppia \texttt{CacheKey} e \texttt{ExternalDataProvider<R>}, e nient'altro.
+
+Per quanto riguarda invece l'uso concorrente della cache: la classe posiziona i dati
+in una collocazione temporanea e li rende accessibili solo a operazione conclusa,
+in un unico passo atomico. Ne consegue che l'esistenza di una voce di cache garantisce
+la sua stessa integrità, e che esecuzioni concorrenti che richiedano gli stessi dati
+non possono osservarne una versione parziale o corrotta. Come l'operazione viene
+effettuata è descritto nel Capitolo~\ref{chap:implementazione}.
+\textbf{\emph{(Link al capitolo di implementazione, non ancora presente.)}}
 
 \subsection{L'identità di una richiesta}
 \label{subsec:acquisizione-identita}

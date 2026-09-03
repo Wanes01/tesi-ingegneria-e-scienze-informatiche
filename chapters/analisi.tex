@@ -5,9 +5,9 @@
 \label{sec:analisi-problema}
 
 Come anticipato nella Sezione~\ref{subsec:alchemist-osm}, il supporto geospaziale di
-Alchemist consente di collocare e muovere con precisione gli agenti di una simulazione su
-cartografia reale, ma non offre un modo altrettanto maturo per esporre loro cosa stia
-accadendo, in un dato istante, nel punto dello spazio geografico in cui si trovano.
+Alchemist consente di collocare e muovere con precisione i nodi di una simulazione su
+cartografia reale, ma non offre un modo altrettanto maturo per esporre loro dati geospaziali,
+in un dato istante, nel punto dello spazio geografico in cui si trovano.
 L'interfaccia \texttt{Layer<T, P>} (Sezione~\ref{subsec:alchemist-layer}) è generica sia
 nella posizione \texttt{P} sia nel valore \texttt{T} restituito, ma nessuna delle sue
 implementazioni preesistenti espone dati che rappresentino misurazioni del mondo reale.
@@ -128,11 +128,28 @@ Ne consegue che le richieste al layer che utilizzano posizioni esterne alla
 regione geografica di riferimento sono da considerarsi errori di modellazione
 della simulazione.
 
-Per quanto riguarda gli istanti temporali esposti dal dataset, si è scelto di non effettuare
-estrapolazione temporale. Se il tempo di simulazione ricade al di fuori dell'intervallo temporale
-coperto dai dati, viene considerato l'istante del dataset più vicino: se il tempo di simulazione
+Per quanto riguarda gli istanti temporali esposti dal dataset, si è scelto di effettuare una estrapolazione temporale
+a valore costante. Se il tempo di simulazione ricade al di fuori dell'intervallo temporale
+coperto dai dati, viene considerato l'istante più vicino nei dati: se il tempo di simulazione
 precede il primo istante disponibile, viene considerato quest'ultimo; analogamente,
 se lo supera, viene considerato l'ultimo istante temporale presente nei dati.
+
+\subsection{Il momento del fallimento}
+\label{subsec:momento-del-fallimento}
+
+L'acquisizione dei dati da un servizio remoto è l'unica parte del lavoro soggetta a
+condizioni fuori dal controllo del modulo: la rete può non essere disponibile, le
+credenziali possono mancare o essere scadute, il servizio può rifiutare la richiesta o
+consegnare dati incompleti.
+
+Si stabilisce che tutte queste condizioni si manifestino al momento della costruzione del
+layer, ovvero al caricamento della simulazione. Una
+simulazione o parte disponendo di tutti i dati di cui ha bisogno, oppure non parte affatto,
+segnalando il motivo.
+
+La scelta rende osservabile una proprietà utile a chi conduce esperimenti: il fallimento è
+immediato e riconoscibile, anziché manifestarsi a esecuzione avanzata sotto forma di
+risultati alterati.
 
 \subsection{Griglie e serie temporali supportate}
 \label{subsec:griglie-supportate}
@@ -147,7 +164,7 @@ Ne consegue che individuare la cella che contiene una data posizione geografica 
 si riduce a due ricerche indipendenti sui due assi, ma richiede l'inversione della
 proiezione fra il sistema di riferimento del dataset e quello geografico.
 Il lavoro si limita quindi alle griglie
-i cui assi di latitudine e longitudine sono indipendenti e monotoni,
+i cui assi di latitudine e longitudine sono indipendenti e strettamente monotoni,
 non necessariamente a passo costante, escludendo i dataset distribuiti
 su proiezioni native.
 
@@ -290,7 +307,6 @@ campioni disponibili, sia temporali che spaziali, deve essere configurabile e in
 Le strategie che soddisfano questo
 requisito, e il modo in cui vengono composte, sono presentate nel
 Capitolo~\ref{chap:progettazione}.
-\textbf{\emph{(Link al capitolo di progettazione, non ancora presente)}}
 
 \section{Requisiti funzionali e non funzionali}
 \label{sec:requisiti}
@@ -307,8 +323,7 @@ Il modulo deve:
     risolvendolo a partire dagli istanti disponibili nei file quando questo non coincide
     con nessuno di essi (Sezione~\ref{sec:tempo-simulazione-tempo-reale});
     \item permettere di scegliere, fra più alternative, la regola con cui un valore
-    viene prodotto a partire dai campioni disponibili, offrendo inoltre la possibilità
-    di estendere il sistema con regole personalizzate;
+    viene prodotto a partire dai campioni disponibili;
     \item esporre ai nodi un valore il cui tipo non coincida necessariamente con
     quello numerico con cui la grandezza è registrata nel file (poiché i file mantengono le misurazioni
     come numeri in virgola mobile, i quali possono rappresentare anche valori interi, categorici o booleani),
@@ -344,6 +359,12 @@ Il modulo deve:
     modo deterministico alla stessa voce di cache;
     \item[Fallimento esplicito] nessuna condizione anomala deve produrre un valore
     silenziosamente scorretto: deve produrre un'eccezione con un messaggio diagnostico.
+    \item[Costo dell'interrogazione] il valore di un layer viene richiesto potenzialmente
+    molte volte per ogni evento della simulazione: la lettura non deve comportare accessi a
+    risorse esterne, e il suo costo non deve dipendere dalla provenienza dei dati.
+    \item[Uso concorrente della cache] Alchemist consente l'esecuzione simultanea di più
+    simulazioni; più esecuzioni che condividano la stessa cache e richiedano gli stessi dati
+    non devono interferire fra loro, né produrre voci di cache incomplete o corrotte.
 \end{description}
 
 \section{Modello del dominio}
@@ -353,7 +374,6 @@ Questa sezione individua le entità
 in gioco e le relazioni che le legano; la figura~\ref{fig:modello-dominio} le riporta.
 Il modello si limita alle astrazioni: le loro realizzazioni concrete e il modo in cui
 vengono composte fra loro sono presentate nel Capitolo~\ref{chap:progettazione}.
-\textbf{\emph{(Link al capitolo di progettazione, non ancora presente)}}
 
 \begin{figure}[H]
     \centering
@@ -365,7 +385,7 @@ vengono composte fra loro sono presentate nel Capitolo~\ref{chap:progettazione}.
 \begin{description}
     \item[\texttt{RasterGrid}] l'insieme dei campioni di una grandezza relativi a un
     singolo istante, organizzati su un reticolo definito da un asse di latitudini e uno di
-    longitudini indipendenti e monotoni. Questa
+    longitudini indipendenti e strettamente monotoni. Questa
     griglia delimita l'estensione spaziale entro la quale la grandezza è nota, e le sue
     celle possono non ospitare alcuna misura;
 

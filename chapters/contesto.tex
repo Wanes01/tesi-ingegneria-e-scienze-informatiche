@@ -98,10 +98,12 @@ formati binari specialistici.
 \subsection{Il tempo di simulazione}
 \label{subsec:alchemist-time}
 
-Alchemist rappresenta l'istante corrente di una simulazione come un valore scalare di tipo
-\texttt{Time}, privo di un'unità di misura intrinseca: la sua interpretazione è una convenzione
-lasciata al modellista della simulazione (ad esempio secondi, ore, giorni), non
-un vincolo imposto dal simulatore; il suo tempo parte da zero e cresce con l'avanzare degli eventi.
+Alchemist rappresenta l'istante corrente di una simulazione come un valore di tipo
+\texttt{Time}, la cui interfaccia espone il tempo come un numero in virgola mobile a doppia
+precisione ed è privo di un'unità di misura intrinseca: la sua interpretazione è una
+convenzione lasciata al modellista della simulazione (ad esempio secondi, ore,
+giorni), non un vincolo imposto dal simulatore; il suo valore parte da zero e cresce
+con l'avanzare degli eventi.
 
 Il tempo di simulazione appartiene al motore, che viene creato solo quando il modello è
 già completo. Un componente, nel momento in cui viene costruito, non ha quindi ancora
@@ -171,6 +173,12 @@ nome dell'argomento a cui si riferiscono:
 
 Questa forma elimina l'ambiguità sull'ordine e rende esplicito a quale parametro ciascun
 valore si riferisca, ma resta soggetta al vincolo appena descritto.
+
+Un vincolo riguarda i tipi generici. La dichiarazione presente nel file YAML indica
+la classe da istanziare, ma non i parametri di tipo con cui specializzarla.
+Una classe generica non è pertanto istanziabile da
+configurazione, e il suo utilizzo richiede l'esistenza di una specializzazione concreta,
+ovvero di una sottoclasse in cui il parametro di tipo sia già fissato.
 
 Non tutti i parametri, infine, provengono dal file YAML: le entità già costruite al momento
 dell'istanziazione, fra cui l'environment stesso, sono iniettate automaticamente laddove un

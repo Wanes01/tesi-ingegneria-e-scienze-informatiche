@@ -17,3 +17,11 @@ soddisfare. Questo capitolo descrive le astrazioni introdotte per ciascuno di es
 modo in cui vengono composte e le motivazioni delle scelte adottate. Le realizzazioni
 concrete di tali astrazioni, e i vincoli che l'ambiente di esecuzione ha imposto alla loro
 forma, sono trattate nel Capitolo~\ref{chap:implementazione}.
+
+### IMPLEMENTAZIONE
+Questo capitolo descrive come le scelte del Capitolo~\ref{chap:progettazione} siano state
+realizzate, seguendone l'ordine di esposizione: la collocazione del modulo nel
+simulatore, la rappresentazione dei dati, le strategie di risoluzione, il layer e infine
+il sottosistema di acquisizione. Non viene riportato il codice per intero, ma i soli
+punti in cui la realizzazione ha richiesto decisioni non deducibili dalla progettazione,
+o in cui il comportamento osservato dei servizi si è discostato da quanto documentato.

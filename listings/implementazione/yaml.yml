@@ -1,0 +1,14 @@
+layers:
+  - type: DoubleCopernicusLayer
+    molecule: two_meter_temperature
+    parameters:
+      endpoint: "https://cds.climate.copernicus.eu/api"
+      dataset: "derived-era5-single-levels-daily-statistics"
+      inputsFile: "/home/user/.alchemist/json/2mt.json"
+      checkMd5: false
+      timeScale: "PT1H"
+      timeOrigin: null
+      variable: null
+      interpolation:
+        - type: TrilinearInterpolation
+          parameters: []

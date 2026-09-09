@@ -221,7 +221,22 @@ catalogo dei dataset disponibili.
 L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
 locale nel formato \texttt{.cdsapirc}~\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
-lo stesso adottato dal client Python ufficiale di \ac{ECMWF}.
+lo stesso adottato dal client Python ufficiale di \ac{ECMWF}~\footnote{Il client ufficiale ECMWF per il recupero dai data store: \url{https://github.com/ecmwf/ecmwf-datastores-client}.}.
+
+I tre data store espongono i propri dataset in due modalità. La prima è l'interfaccia web
+di cui ciascuno dispone: selezionati i parametri di un dataset, un pulsante avvia lo
+scaricamento. La seconda è programmatica: la stessa interfaccia, a selezione avvenuta,
+mostra il frammento di codice da fornire al client Python ufficiale, che effettua la
+richiesta per conto dell'utente. La selezione dei parametri è quindi la stessa nei due
+casi, e a distinguerli è solo il modo in cui viene trasmessa.
+
+Il risultato di una richiesta non è necessariamente un solo file. Una selezione può
+individuare più prodotti, ad esempio più variabili o più intervalli temporali, e in tal
+caso i data store consegnano un archivio compresso anziché un file singolo. Alcuni dataset
+espongono fra i propri parametri la forma desiderata (archivio o singolo file), ma non si tratta di una facoltà
+generale: quale delle due forme venga consegnata dipende dal dataset e dalla selezione
+effettuata. Il formato dei file contenuti, fra quelli descritti nella
+Sezione~\ref{sec:formati-raster}, è invece scelto dall'utente.
 
 \section{Formati e convenzioni per dati raster geospaziali}
 \label{sec:formati-raster}

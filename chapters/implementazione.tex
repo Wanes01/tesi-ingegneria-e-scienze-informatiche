@@ -1,104 +1,204 @@
 \chapter{Implementazione}
 \label{chap:implementazione}
 
-Questo capitolo descrive come le scelte del Capitolo~\ref{chap:progettazione} siano state
-realizzate. L'esposizione segue l'ordine in cui i componenti sono stati costruiti e
-validati: prima le parti prive di dipendenze esterne, poi quelle che accedono al file
-system, infine quelle che dialogano con la rete e con il simulatore. Non viene riportato
-il codice per intero, ma i soli punti in cui la realizzazione ha richiesto decisioni non
-deducibili dalla progettazione.
+Questo capitolo descrive come le scelte del Capitolo~\ref{chap:progettazione} sono state
+realizzate, seguendone la stessa articolazione.
+Non è un resoconto esaustivo del codice prodotto: sono riportati i soli
+punti in cui la realizzazione ha richiesto decisioni non deducibili dalla progettazione,
+ovvero quelli in cui il formato dei dati, il protocollo dei servizi remoti o il meccanismo
+di caricamento di Alchemist hanno imposto una forma particolare. I frammenti di codice
+riportati sono ridotti alle parti significative, ad esempio eliminando tutta la
+documentazione dei vari metodi o la maggior parte dei commenti.
 
-\section{Lettura e normalizzazione dei dataset}
-\label{sec:lettura-impl}
+\section{La collocazione nel simulatore}
+\label{sec:collocazione-impl}
+
+Il requisito \req{NF3} chiede che il codice rispetti le convenzioni del simulatore,
+essendo destinato a esserne integrato. La prima di queste riguarda la collocazione delle
+classi: Alchemist separa ciò che descrive una simulazione, sotto
+\texttt{it.unibo.alchemist.model}, da ciò che mette in relazione il dominio con il mondo esterno,
+sotto \texttt{it.unibo.alchemist.boundary}.
+I sottomoduli individuati nella Sezione~\ref{subsec:aree-modulo} vengono collocati nel seguente modo:
+
+\begin{itemize}
+    \item \texttt{model.geospatial.reading}: \texttt{RasterGrid} con le sue due
+    realizzazioni, assieme a \texttt{GridSnapshots} ed \texttt{EagerGridSnapshots};
+    \item \texttt{model.geospatial.strategy}, articolato nei sotto-package \texttt{spatial},
+    \texttt{temporal}, \texttt{spatiotemporal} e \texttt{converter}: ciascuna astrazione
+    di risoluzione con le proprie realizzazioni;
+    \item \texttt{model.layers}: \texttt{GeoLayer}, \texttt{CopernicusLayer} e
+    \texttt{DoubleCopernicusLayer}, accanto alle realizzazioni di \texttt{Layer} già
+    presenti nel simulatore;
+    \item \texttt{boundary.acquisition}: le tre astrazioni della
+    Sezione~\ref{subsec:acquisizione-astrazioni} e le realizzazioni relative ai data
+    store Copernicus.
+\end{itemize}
+
+\section{La rappresentazione dei dati}
+\label{sec:rappresentazione-impl}
+
+\subsection{La disposizione dei campioni in memoria}
+\label{subsec:griglie-impl}
+
+La Sezione~\ref{subsec:raster-grid} ha stabilito che le due realizzazioni della griglia
+differiscono unicamente nel modo in cui i campioni sono memorizzati, e che la classe
+astratta ospita la verifica delle precondizioni comuni. Quest'ultima è collocata nel
+blocco di inizializzazione e riguarda tre condizioni: la monotonia strettamente crescente
+di ciascuno dei due assi e la coerenza fra il loro prodotto e il numero dei campioni
+ricevuti. Il fatto che tali condizioni siano stabilite una volta sola, alla costruzione,
+è ciò che consente al resto del modulo di darle per scontate senza ricontrollarle
+(Sezione~\ref{subsec:ricerca-impl}).
+
+\lstinputlisting[language=Kotlin,label={lst:init-raster}]{listings/implementazione/initRaster.kt}
+
+La realizzazione densa conserva i campioni in un unico vettore di primitivi, indicizzato
+linearmente: il campione di coordinate $(i, j)$ occupa la posizione
+$i \cdot n_{\text{lon}} + j$. Questa implementazione memorizza esplicitamente
+i campioni mancanti. La realizzazione sparsa, viceversa, conserva le sole celle che
+ospitano una misura tramite una mappa che associa a ciascuna di esse il proprio valore:
+qui i valori mancanti non vengono mai memorizzati, e l'assenza dalla mappa è essa stessa
+l'informazione.
+
+\lstinputlisting[language=Kotlin,label={lst:array-grid}]{listings/implementazione/ArrayGrid.kt}
 
 \subsection{L'accesso ai formati}
-\label{subsec:cdm}
+\label{subsec:formati-impl}
 
-La lettura di \ac{NetCDF} e \ac{GRIB} è delegata a \texttt{cdm-core}, il nucleo della
-libreria NetCDF-Java sviluppata da Unidata~\cite{netcdfjava}. La libreria espone entrambi i
-formati attraverso il medesimo modello di dati astratto, il \emph{Common Data Model}, che
-descrive un file come un insieme di variabili definite su assi tipizzati. È questa
-uniformità a rendere possibile \req{F8}: il codice del modulo non distingue fra i due
-formati, e opera sul modello anziché sui byte.
+La lettura di \ac{NetCDF} e \ac{GRIB} è delegata alla libreria NetCDF-Java~\cite{netcdfjava},
+sviluppata da Unidata. La libreria espone entrambi i formati attraverso lo stesso modello
+di dati, il \ac{CDM}, che descrive un file come un insieme di variabili definite su assi
+tipizzati. Questa uniformità rende possibile \req{F8}: il codice del modulo non distingue
+fra i due formati.
 
-% SEGNAPOSTO CODICE 1
-% Inserire qui la dichiarazione della dipendenza nel version catalog e in
-% build.gradle.kts, limitatamente alle righe di cdm-core e del repository
-% artifacts.unidata.ucar.edu. Serve a mostrare che la libreria non è su Maven Central,
-% il che è la ragione per cui il repository va dichiarato esplicitamente.
-% Poche righe: la voce di libs.versions.toml e il blocco repositories.
+I file sono aperti in modalità arricchita, nella quale la libreria interpreta i metadati
+già presenti nel file per esporre gli assi tipizzati e, soprattutto, sostituisce
+automaticamente i valori convenzionali di riempimento con \texttt{Double.NaN}. La
+convenzione interna del modulo per i valori mancanti coincide quindi con quella che la
+libreria produce.
 
-\subsection{L'individuazione degli assi}
-\label{subsec:assi-impl}
+L'apertura dei file \ac{GRIB} ha richiesto un accorgimento aggiuntivo. Poiché
+estremamente compresso, questo formato necessita di tabelle \ac{XML} esterne
+per identificare la variabile di riferimento. La libreria NetCDF-Java contiene
+già queste tabelle, ma richiede una specifica realizzazione della fabbrica di parser
+per poterle leggere, e fallisce se un'altra risulta registrata a livello di sistema.
+L'apertura di un file imposta pertanto temporaneamente la proprietà di sistema
+corrispondente, ripristinando il valore precedente, o rimuovendolo se assente,
+non appena il file è aperto.
 
-Il modello comune associa a ogni asse un tipo, che ne dichiara il ruolo: latitudine,
-longitudine, tempo, quota. La lettura si fonda su questi tipi anziché sui nomi delle
-dimensioni, che variano da dataset a dataset.
+\lstinputlisting[language=Kotlin,label={lst:sax-parser}]{listings/implementazione/sax-parser.kt}
 
-Sull'asse temporale il tipo dichiarato non è però sempre lo stesso. Alcuni dataset, in
-particolare quelli che distribuiscono rianalisi, espongono l'asse temporale come istante di
-emissione della previsione anziché come istante di validità della misura, con un tipo
-distinto. La ricerca dell'asse temporale considera pertanto entrambi i tipi, nell'ordine.
-
-% SEGNAPOSTO CODICE 2
-% Inserire qui la funzione readFileAxes di GridReading.kt, o la sola porzione che
-% individua i tre assi, in particolare la riga con il fallback
-% AxisType.Time ?: AxisType.RunTime.
-% Motivazione: è il punto in cui una deviazione fra dataset viene assorbita senza
-% che il resto del modulo ne sappia nulla.
-
-\subsection{La normalizzazione dello schema}
+\subsection{L'individuazione e la normalizzazione degli assi}
 \label{subsec:normalizzazione-impl}
 
-Lo schema di un file non è fissato a priori: le tre dimensioni possono comparire in
-qualunque ordine, e ciascun asse può essere memorizzato in direzione crescente o
-decrescente. Il caso più frequente è quello delle latitudini, distribuite in ordine
-decrescente da molti dataset.
+Il \ac{CDM} associa a ogni asse un tipo che ne specifica il ruolo. La lettura si fonda su
+questi tipi anziché sui nomi delle dimensioni, che variano da dataset a dataset: lo stesso
+asse compare come \texttt{latitude} in alcuni file e come \texttt{lat} in altri, mentre il
+tipo dichiarato è in entrambi i casi quello di latitudine. Gli assi spaziali vengono
+inoltre richiesti monodimensionali, il che rende verificata l'ipotesi stabilita nella
+Sezione~\ref{subsec:griglie-supportate}: un dataset in proiezione cartografica espone assi
+bidimensionali e viene respinto anziché letto in modo scorretto.
 
-Poiché le astrazioni della Sezione~\ref{sec:rappresentazione} assumono assi crescenti e un
-ordine fissato delle dimensioni, la lettura normalizza entrambi gli aspetti: la sezione
-letta viene permutata nell'ordine atteso e, per ciascun asse decrescente, l'indice viene
-rovesciato. La normalizzazione avviene una sola volta, alla costruzione della serie, ed è
-ciò che consente al resto del modulo di ignorare del tutto lo schema di origine.
+Sull'asse temporale il tipo dichiarato non è sempre lo stesso. I dataset che distribuiscono
+previsioni espongono l'istante di emissione e quello di validità con tipi distinti, e alcuni
+archivi etichettano il proprio unico asse temporale come istante di emissione. La ricerca
+considera pertanto entrambi i tipi, ripiegando sul secondo quando il primo è assente. L'asse
+così individuato viene poi ricostruito come asse temporale interpretato secondo le
+convenzioni \ac{CF}, che è ciò che consente di ottenere istanti assoluti piuttosto che dei
+numeri riferiti all'origine dichiarata nei metadati del file.
 
-% SEGNAPOSTO CODICE 3
-% Inserire qui readPermutedSlice e flattenAscending da GridReading.kt.
-% Se troppo lunghe insieme, basta flattenAscending, che è la più illustrativa.
-% Motivazione: mostra concretamente come la permutazione e il ribaltamento vengono
-% applicati in un unico passaggio.
+\lstinputlisting[language=Kotlin,label={lst:lettura-assi}]{listings/implementazione/readFileAxesAssi.kt}
+
+Lo schema di un file non è però fissato a priori, in due sensi distinti. Il primo è l'ordine
+in cui le tre dimensioni compaiono nella dichiarazione della variabile, poiché è quest'ordine
+a determinare la disposizione dei valori in memoria: un file che dichiara
+$(\text{tempo}, \text{latitudine}, \text{longitudine})$ memorizza una riga di longitudini
+dopo l'altra, mentre uno che dichiara
+$(\text{tempo}, \text{longitudine}, \text{latitudine})$ memorizza una colonna dopo l'altra.
+
+La libreria non impone alcun ordine: legge la porzione richiesta e restituisce i valori così
+come il file li dispone. Tuttavia, le rappresentazioni delle griglie prendono come ipotesi
+che le righe che le formano siano rappresentate da latitudini e non da longitudini.
+
+Quell'ipotesi non è garantita. Le convenzioni \ac{CF} raccomandano l'ordine
+$(\text{tempo}, \text{latitudine}, \text{longitudine})$ senza imporlo però~\cite{cf_conventions},
+di conseguenza i file \ac{NetCDF} estratti dagli store espongono i propri assi in ordine
+arbitrario. In questo modo la lettura avverrebbe comunque con successo, senza produrre un
+fallimento, bensì una griglia con gli assi spaziali scambiati; tale griglia
+produrrebbe valori errati, in contrasto con \req{NF6}. La porzione letta viene quindi
+permutata nell'ordine atteso.
+
+Il secondo senso è la direzione degli assi, che possono essere memorizzati in ordine
+crescente o decrescente. Poiché l'individuazione di una coordinata sugli assi è una ricerca
+binaria (Sezione~\ref{subsec:ricerca-impl}), che presuppone un ordinamento crescente, per
+ciascun asse decrescente l'indice viene rovesciato durante l'appiattimento della porzione in
+un vettore. L'alternativa avrebbe richiesto di conservare la direzione di ciascun asse e di
+tenerne conto a ogni accesso, portando un dettaglio del formato di origine del formato
+dentro al resto del modulo.
+
+Entrambe le normalizzazioni avvengono una sola volta, alla costruzione della serie, ed è ciò
+che consente al resto del modulo di ignorare del tutto lo schema originale.
+
+\lstinputlisting[language=Kotlin,label={lst:permutazione}]{listings/implementazione/gridReading.kt}
+
+La permutazione produce solo una vista sui dati originali e l'indicizzazione
+usata nell'appiattimento la
+attraverserebbe quindi nell'ordine del file e non in quello richiesto. La porzione permutata
+viene pertanto copiata prima di essere appiattita.
 
 \subsection{La selezione della variabile}
 \label{subsec:variabile-impl}
 
 Un archivio può contenere più variabili distinte, e la costruzione di una serie richiede di
 stabilire quale estrarre (Sezione~\ref{subsec:grid-snapshots}). Il nome da indicare non è
-quello con cui il dataset è catalogato dal servizio, bensì quello con cui la variabile è
-identificata all'interno del file, che nei \ac{GRIB} corrisponde al nome breve della
-grandezza.
+quello con cui la variabile è catalogata dal servizio, usato durante la selezione dei
+parametri in fase di richiesta, bensì quello con cui la variabile è identificata all'interno
+del file.
 
-Quando l'archivio contiene una sola variabile definita sulle tre dimensioni di interesse,
-indicarne il nome sarebbe una ridondanza. Il parametro è pertanto facoltativo: se non
-specificato, la variabile viene individuata automaticamente, e la sua assenza o
-molteplicità produce un errore diagnostico (\req{NF6}).
+Quando l'archivio contiene una sola variabile definita sulle tre dimensioni di interesse
+(tempo, latitudine, longitudine),
+indicarne il nome sarebbe una ridondanza. Il parametro è per questo facoltativo: se non
+specificato, la variabile viene individuata fra quelle definite esattamente su quelle tre
+dimensioni, criterio che esclude automaticamente le variabili che espongono gli assi, essendo
+queste monodimensionali. Nel rispetto di \req{NF6}, ogni errore è informativo: nel caso in
+cui la variabile specifica sia assente, viene allertato il modellista delle variabili
+disponibili; allo stesso modo, viene reso esplicito se non ci sono variabili descritte dalle
+dimensioni aspettate o se ne vengono trovate multiple.
 
-% SEGNAPOSTO CODICE 4
-% Inserire qui resolveVariable da GridReading.kt.
-% Motivazione: mostra la scelta fra nome esplicito e rilevamento automatico, e il
-% modo in cui i due casi di fallimento vengono distinti nel messaggio d'errore.
+\lstinputlisting[language=Kotlin,label={lst:resolve-variable}]{listings/implementazione/resolveVariable.kt}
 
-\subsection{La scelta della rappresentazione}
-\label{subsec:densita-impl}
+Il criterio, essendo un'uguaglianza esatta fra insiemi di dimensioni, esclude anche le
+variabili che ne dichiarano una quarta (come altezza o pressione).
+Tali dataset non rientrano fra quelli considerati
+(Sezione~\ref{subsec:griglie-supportate}), e il loro rifiuto è quindi coerente con
+l'ipotesi assunta.
 
-La Sezione~\ref{subsec:raster-grid} ha introdotto due realizzazioni della griglia, una
-densa e una sparsa, e ha stabilito che la scelta fra esse è invisibile a chi la usa. La
-decisione viene presa alla costruzione, contando le celle che ospitano una misura: al di
-sotto di una frazione prestabilita del totale la griglia viene memorizzata in forma sparsa,
-al di sopra in forma densa.
+\subsection{La costruzione della serie}
+\label{subsec:serie-impl}
 
-% SEGNAPOSTO CODICE 5
-% Inserire qui buildGrid da GridReading.kt, con la costante
-% SPARSE_DENSITY_THRESHOLD e il conteggio dei valori non mancanti.
-% Motivazione: è il punto in cui la scelta fra le due realizzazioni viene compiuta.
+La realizzazione della serie legge tutti i file di una cartella e li fonde in un'unica
+successione. I file vengono elencati in ordine lessicografico e da essi sono esclusi gli
+indici che la libreria di lettura genera accanto ai \ac{GRIB}, che risiedono nella stessa
+cartella ma non sono dati.
+
+Nella costruzione di \texttt{EagerGridSnapshots} le griglie sono memorizzate in una mappa
+ordinata dagli istanti del mondo reale, il che concede due proprietà: l'ordinamento della
+successione e l'assenza di istanti duplicati. La fusione rende possibile che due file
+coprano il medesimo istante; in tal caso viene conservata la griglia del primo file in
+ordine lessicografico e le successive scartate, segnalandolo a chi conduce la simulazione.
+L'alternativa, ovvero il fallimento dovuto alla duplicazione degli istanti, sarebbe stata
+eccessiva rispetto a una condizione che le richieste ai data store producono spesso.
+
+L'omogeneità richiesta dalla Sezione~\ref{subsec:griglie-supportate} è verificata durante
+la lettura: il primo file stabilisce gli assi spaziali e il nome della variabile, e ogni
+file successivo viene confrontato con essi. Un disallineamento produce un errore al
+caricamento della simulazione, come \req{NF7} richiede.
+
+\lstinputlisting[language=Kotlin,label={lst:eager-init}]{listings/implementazione/EagerGridInit.kt}
+
+La scelta fra le due realizzazioni della griglia è compiuta a questo punto, da
+\texttt{buildGrid}, contando le celle che ospitano una misura. Al di sotto di una frazione
+prestabilita del totale la griglia viene memorizzata in forma sparsa, al di sopra in forma
+densa.
 
 \section{Le strategie di risoluzione}
 \label{sec:strategie-impl}
@@ -107,334 +207,439 @@ al di sopra in forma densa.
 \label{subsec:ricerca-impl}
 
 L'ipotesi stabilita nella Sezione~\ref{subsec:griglie-supportate} richiede assi
-strettamente monotoni ma non equispaziati. Le convenzioni per i dati climatici, del resto,
-impongono la monotonia stretta ma non un passo costante~\cite{cfconventions}. Ne discende
-che gli assi vanno conservati per esteso e che l'individuazione della cella contenente una
-coordinata è una ricerca binaria, non un calcolo aritmetico: una rappresentazione per
-origine e passo produrrebbe risultati errati sui dataset a passo variabile.
+strettamente monotoni ma non equispaziati; le convenzioni per i dati climatici, del resto,
+non impongono un passo costante~\cite{cf_conventions}. Ne consegue che gli assi vanno
+conservati nella loro interezza e che l'individuazione della cella contenente una coordinata
+è una ricerca binaria, non un calcolo aritmetico.
 
-% SEGNAPOSTO CODICE 6
-% Inserire qui le funzioni di Axes.kt: nearestIndex, bracketIndices e weight.
-% Sono brevi e vanno bene tutte e tre insieme.
-% Motivazione: mostrano che ciò che le strategie ricevono (indici e peso) è
-% calcolato una sola volta e in un punto solo.
+Le tre operazioni di cui le strategie e il layer hanno bisogno sono raccolte in un unico
+file di funzioni interne: l'individuazione dell'indice più vicino a una coordinata, quella
+della coppia di indici che la racchiude, e il calcolo del peso che ne esprime la posizione
+relativa fra i due. Tutte e tre estrapolano in modo costante oltre gli estremi dell'asse,
+restituendo l'indice estremo più vicino: è questa proprietà a realizzare, sull'asse
+temporale, il comportamento stabilito nella Sezione~\ref{sec:corrispondenza-temporale}.
 
-\subsection{La composizione delle strategie}
+\lstinputlisting[language=Kotlin,label={lst:axes-search}]{listings/implementazione/Axes.kt}
+
+Nessuna di queste funzioni verifica che l'asse ricevuto sia strettamente crescente. Non si
+tratta di un controllo omesso per costo, bensì di un controllo ridondante poiché la monotonia
+degli assi spaziali è una precondizione stabilita alla costruzione della griglia
+(Sezione~\ref{subsec:griglie-impl}), mentre quella dell'asse temporale deriva
+dall'ordinamento della serie e dalla positività della scala utilizzata
+(Sezione~\ref{subsec:corrispondenza-impl}). Ripeterlo a ogni interrogazione, oltre 
+a essere ridondante, porterebbe a costo lineare un'operazione altrimenti logaritmica,
+in contrasto con \req{NF8}.
+
+\subsection{La composizione per delegazione}
 \label{subsec:composizione-impl}
 
-La Sezione~\ref{subsec:interpolazione} ha stabilito che \texttt{TrilinearInterpolation}
-non è una specializzazione della composizione separabile, bensì una sua configurazione
-fissata, e che va quindi realizzata per delegazione. Kotlin consente di esprimere
-direttamente questa relazione: la classe dichiara di realizzare l'interfaccia delegando a
-un'istanza della composizione separabile, configurata con le due strategie desiderate,
-senza riscriverne alcun metodo.
+La Sezione~\ref{subsec:interpolazione} stabilisce che \texttt{TrilinearInterpolation} non
+è una specializzazione dell'interpolazione separabile, bensì una sua configurazione fissata,
+e che va quindi realizzata per delegazione. Kotlin consente di esprimere direttamente
+questa relazione:
 
-% SEGNAPOSTO CODICE 7
-% Inserire qui la dichiarazione completa di TrilinearInterpolation (poche righe),
-% con la clausola "by SeparableSpatioTemporalInterpolation(...)".
-% Motivazione: è l'esempio più compatto di come la Progettazione si traduca
-% direttamente in una costruzione del linguaggio.
+\lstinputlisting[language=Kotlin,label={lst:trilinear}]{listings/implementazione/TrilinearInterpolation.kt}
+
+La stessa costruzione è impiegata da \texttt{DoubleIdentityWithFallback}, che delega al
+decoratore per i valori mancanti configurato con la funzione identità, per la medesima
+ragione.
 
 \subsection{L'identità delle strategie}
 \label{subsec:identita-strategie-impl}
 
-Le strategie prive di parametri di configurazione non hanno stato: due istanze della stessa
-classe sono indistinguibili e devono confrontarsi come uguali. Poiché la definizione
-predefinita di uguaglianza confronta le identità dei riferimenti, le strategie di questo
-tipo estendono una classe base che ne ridefinisce uguaglianza e codice di hash sulla base
-del tipo a tempo di esecuzione. Le strategie dotate di parametri, viceversa, sono
-dichiarate come classi di dati, per le quali il linguaggio genera un confronto sul
-contenuto.
+La classe base comune alle strategie prive di configurazione non risponde a un'esigenza del
+dominio, dove l'uguaglianza fra strategie non viene mai interrogata, bensì a un vincolo del
+meccanismo di caricamento.
 
-% SEGNAPOSTO CODICE 8
-% Inserire qui StatelessStrategy per intero, e la sola riga di dichiarazione di
-% una strategia che la estende (per esempio BilinearInterpolation) e di una che
-% invece è data class (per esempio DoubleIdentityWithFallback).
-% Motivazione: mostra i due casi affiancati.
+Il meccanismo di caricamento, quando incontra un parametro dichiarato a sua volta con una classe e i
+propri parametri, non riceve un oggetto già costruito bensì la descrizione di come
+costruirlo (ciò che viene scritto nel file YAML).
+Per tradurla deve sapere di quale tipo debba essere l'oggetto, e questo dipende
+da quale costruttore del layer verrà invocato. Il
+caricatore costruisce allora il parametro una volta per ciascun costruttore possibile, e
+confronta poi le istanze ottenute. Se non risultano tutte uguali, considera la risoluzione
+ambigua e interrompe il caricamento.
 
-\section{Il layer e la sua configurazione}
-\label{sec:loader-impl}
+Tutti e tre i costruttori del layer dichiarano la coppia di strategie per l'interpolazione
+e la conversione del valore
+(Sezione~\ref{subsec:costruttori-impl}), per cui una medesima strategia viene costruita
+più volte. Il confronto predefinito fra oggetti guarda però l'identità dei riferimenti, e
+istanze costruite separatamente non risultano quindi mai uguali fra loro: il caricamento
+fallirebbe.
 
-\subsection{I vincoli del meccanismo di caricamento}
-\label{subsec:vincoli-loader-impl}
+Le strategie prive di parametri di configurazione estendono quindi una classe base
+comune, che ridefinisce uguaglianza e codice di hash sul tipo a tempo di esecuzione: due
+istanze sono uguali se e solo se appartengono alla stessa classe. Entrambi i metodi vengono
+ridefiniti, in modo tale da non far fallire il controllo sull'eguaglianza.
+La classe non introduce un'astrazione del
+dominio, serve a raccogliere in un solo
+punto un criterio che, altrimenti, ciascuna strategia dovrebbe ripetere per conto proprio.
 
-Il meccanismo di caricamento delle simulazioni (Sezione~\ref{subsec:alchemist-loader})
-istanzia le classi per riflessione, ispezionando le firme dei costruttori disponibili e
-selezionando quella compatibile con i parametri dichiarati nella configurazione. Da questo
-funzionamento discendono alcuni vincoli, ai quali il Capitolo~\ref{chap:progettazione} ha
-fatto rimando in più punti, e che hanno orientato tanto le firme dei costruttori del layer
-quanto la collocazione della selezione dei parametri di una richiesta.
+\lstinputlisting[language=Kotlin,label={lst:stateless-strategy}]{listings/implementazione/StatelessStrategy.kt}
 
-\paragraph{I tipi generici non sono istanziabili.}
-La dichiarazione presente nella configurazione indica la classe da istanziare, ma non i
-parametri di tipo con cui specializzarla, che la riflessione non ha modo di desumere. Ogni
-classe destinata a essere dichiarata deve pertanto essere concreta, ed è questa la ragione
-dell'esistenza di \texttt{DoubleCopernicusLayer} accanto a \texttt{CopernicusLayer<T>}
-(Sezione~\ref{subsec:layer-costruzione}). Lo stesso vincolo, applicato a una gerarchia
-generica in profondità, avrebbe richiesto una specializzazione concreta a ogni livello, ed
-è ciò che ha suggerito di concentrare la genericità in un unico punto
-(Sezione~\ref{subsec:tipo-campioni}).
+Il costruttore è protetto perché la classe non ha significato se istanziata direttamente:
+essa non definisce alcun comportamento, ma solo un criterio di identità.
 
-\paragraph{Gli argomenti predefiniti non sono visibili.}
-La riflessione osserva le firme come esse appaiono sulla \ac{JVM}, dove un argomento
-predefinito di Kotlin non genera di per sé un costruttore alternativo. Ogni costruttore
-destinato a essere dichiarato nella configurazione richiede pertanto l'annotazione che ne
-genera esplicitamente le varianti sovraccariche.
+\subsection{La propagazione dei valori mancanti}
+\label{subsec:mancanti-impl}
 
-\paragraph{Solo un suffisso di argomenti può essere omesso.}
-Il meccanismo distingue fra argomenti obbligatori e facoltativi, e ammette l'omissione dei
-soli facoltativi in coda alla firma: non è possibile ometterne uno intermedio
-specificandone uno successivo. Gli argomenti facoltativi sono quindi dichiarati in ordine
-decrescente di probabilità d'uso, e quelli comuni a più costruttori compaiono in tutti
-nello stesso ordine e nella medesima posizione finale.
+I valori mancanti possono essere intercettati a due livelli diversi. In primo luogo, dalla
+strategia di interpolazione, che in base alla propria regola di combinazione può decidere
+se propagarli o meno. Il valore interpolato, possibilmente ancora mancante, incontra poi
+l'operazione finale del layer: la traduzione da un \texttt{Double}, eventualmente
+\texttt{Double.NaN}, al valore esposto ai nodi.
 
-\paragraph{Le firme generate devono restare distinguibili.}
-Poiché ogni argomento facoltativo genera una variante della firma, due costruttori distinti
-possono generare varianti coincidenti per numero e tipo degli argomenti, che sulla \ac{JVM}
-sarebbero indistinguibili e impedirebbero la compilazione della classe. È questa la ragione
-per cui l'argomento che abilita la verifica di integrità è dichiarato obbligatorio: reso
-facoltativo, la rimozione progressiva degli argomenti in coda al terzo costruttore
-produrrebbe una firma coincidente con una generata dal secondo.
+L'ultimo punto in cui la propagazione può essere intercettata è quindi il convertitore. Di
+seguito è riportata l'implementazione di \texttt{MissingValueFallbackConverter}, che
+rimpiazza i valori mancanti e delega a un altro convertitore la traduzione dei restanti.
 
-\paragraph{I tipi riconosciuti sono limitati.}
-Il meccanismo non dispone di conversioni verso i tipi che rappresentano collocazioni sul
-file system, istanti o durate. Gli argomenti che li denotano sono pertanto dichiarati come
-stringhe e convertiti all'interno del costruttore, secondo il formato definito dallo
-standard ISO 8601~\cite{iso8601}, compatto e convertibile senza ambiguità. La durata di
-Kotlin, in particolare, non sarebbe comunque utilizzabile: essendo una classe di valore,
-sulla \ac{JVM} la sua firma la riduce a un intero, indistinguibile da un argomento
-numerico qualunque.
+Nella configurazione predefinita, \texttt{DoubleIdentityWithFallback}, il ripiego, se non
+specificato altrimenti, è proprio il valore mancante, in modo che possa agire da funzione
+identità rispetto ai dati letti.
 
-\paragraph{Alcuni nomi sono riservati.}
-Il formato di configurazione attribuisce a certi nomi un significato proprio: fra questi
-``\texttt{type}'', con cui è indicata la classe da istanziare. Lo stesso nome compare però
-fra i parametri ammessi da alcuni dataset, dove designa, ad esempio, il tipo di rianalisi
-richiesta. Una selezione di parametri dichiarata direttamente nella configurazione ne
-risulterebbe alterata, ed è questa la ragione per cui essa risiede in un artefatto separato
-(Sezione~\ref{subsec:acquisizione-identita}).
+\lstinputlisting[language=Kotlin,label={lst:fallback}]{listings/implementazione/fallback.kt}
 
-\paragraph{L'environment non è un argomento.}
-Il simulatore registra l'environment corrente come istanza singola, e la riflessione la
-inietta automaticamente nei costruttori che la dichiarano. L'argomento non compare quindi
-nella configurazione, e non va contato fra quelli dichiarabili.
+\section{Il layer}
+\label{sec:layer-impl}
 
-% SEGNAPOSTO CODICE 9
-% Inserire qui l'output di javap -p sulla classe DoubleCopernicusLayer, oppure una
-% sua porzione, limitata alle varianti generate da uno dei due costruttori YAML.
-% Motivazione: è la prova diretta della moltiplicazione delle firme e del rischio
-% di collisione descritto sopra. Se l'output è troppo lungo, bastano le tre o
-% quattro righe che mostrano la progressione degli argomenti.
+\subsection{La corrispondenza temporale}
+\label{subsec:corrispondenza-impl}
 
-\subsection{I costruttori del layer}
+La Sezione~\ref{sec:corrispondenza-temporale} ha stabilito che l'intera successione degli
+istanti della serie viene ricondotta al tempo di simulazione una sola volta, alla
+costruzione del layer. La conversione avviene tramite una origine e una scala, applicata a
+ciascun istante; il risultato è conservato in un vettore di scalari, che è la sola forma in
+cui il tempo compare durante l'esecuzione. L'origine, se non specificata, corrisponde al
+primo istante disponibile della serie di griglie.
+
+Due condizioni sono verificate alla costruzione: che la serie non sia vuota, poiché una
+serie priva di istanti non individua alcun valore, e che la scala sia una durata finita e
+positiva, poiché una scala nulla renderebbe la conversione indefinita e una negativa
+invertirebbe l'ordine della successione.
+
+\lstinputlisting[language=Kotlin,label={lst:layer-time}]{listings/implementazione/CopernicusLayerTime.kt}
+
+La successione così ottenuta è strettamente crescente, poiché lo è quella degli istanti del
+mondo reale e la scala è positiva. È questa proprietà a rendere
+applicabile all'asse temporale la ricerca binaria descritta nella
+Sezione~\ref{subsec:ricerca-impl}.
+
+\subsection{L'interrogazione}
+\label{subsec:interrogazione-impl}
+
+L'interrogazione realizza la semantica descritta nella Sezione~\ref{subsec:layer-pull-based}
+e la distribuzione di responsabilità della \Cref{fig:layer-sequenza}: il layer legge il
+tempo di simulazione corrente dall'environment, individua i campioni temporali che lo
+racchiudono e delega alle strategie la produzione del valore.
+
+Il tempo di simulazione non è però sempre disponibile: il motore che lo detiene viene
+costruito dopo i componenti del modello (Sezione~\ref{subsec:alchemist-time}), e
+un'interrogazione che avvenga prima non troverebbe alcun istante da leggere. In tal caso il
+layer assume lo zero, ovvero l'istante iniziale della simulazione, che è il valore che il
+motore esporrebbe non appena costruito.
+
+Coerentemente con quanto stabilito nella Sezione~\ref{sec:corrispondenza-temporale}, il
+layer estrapola in modo costante oltre gli estremi dell'asse temporale: un istante anteriore
+al primo campione o posteriore all'ultimo viene ricondotto al campione estremo più vicino.
+Nel caso in cui l'istante di simulazione coincida esattamente con una griglia,
+l'interpolazione viene applicata prendendo due volte la stessa come riferimento, con peso
+nullo.
+
+\lstinputlisting[language=Kotlin,label={lst:layer-get-value}]{listings/implementazione/CopernicusLayerGetValue.kt}
+
+La verifica che la posizione richiesta ricada nella regione coperta dai dati avviene su una
+qualsiasi delle due griglie, qua presa come riferimento la prima, ed è sufficiente perché l'omogeneità degli assi
+spaziali è
+accertata alla costruzione della serie (Sezione~\ref{subsec:serie-impl}). Diversamente dalle
+altre condizioni d'errore del modulo, questa si manifesta durante l'esecuzione e non al
+caricamento: non è una violazione di \req{NF7}, che riguarda la disponibilità dei dati, ma
+il rifiuto di una chiamata al metodo la cui validità dipende dalla posizione del nodo, la quale
+non può essere nota in anticipo.
+
+\subsection{I costruttori e la configurazione}
 \label{subsec:costruttori-impl}
 
-La \Cref{fig:costr-layer} riporta i tre costruttori di \texttt{DoubleCopernicusLayer} e i
-valori predefiniti dei loro argomenti, secondo le modalità di costruzione descritte nella
-Sezione~\ref{subsec:layer-costruzione}.
+Il meccanismo di caricamento istanzia le classi tramite reflection, ispezionando le firme
+dei costruttori disponibili e selezionando quella compatibile con i parametri dichiarati
+nella configurazione (Sezione~\ref{subsec:alchemist-loader}). Alle tre modalità descritte
+nella Sezione~\ref{subsec:layer-costruzione} corrispondono altrettanti costruttori di
+\texttt{DoubleCopernicusLayer}, la specializzazione concreta di \texttt{CopernicusLayer<T>}. 
+La forma degli argomenti non è data però dalle sole modalità di costruzione: in più punti è il meccanismo di caricamento
+a dettarla.
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{figures/implementazione/costr_layer.png}
-    \caption[I costruttori del layer Copernicus]{I costruttori del layer e i valori predefiniti assegnati.}
-    \label{fig:costr-layer}
-\end{figure}
+\lstinputlisting[language=Kotlin,label={lst:costr-layer}]{listings/implementazione/DoubleCopernicusLayer.kt}
 
-Il secondo costruttore assume che i file siano già presenti sulla macchina, e ne riceve la
-collocazione in \texttt{dataDirectory}. Tutti i file contenuti nella cartella concorrono a
-formare un'unica serie e devono quindi essere omogenei fra loro, nel senso stabilito nella
-Sezione~\ref{subsec:griglie-supportate}. I restanti argomenti riguardano l'interpretazione
-di quei file:
+Il primo costruttore non è raggiungibile dalla configurazione, poiché richiede una serie di
+griglie già costruita, che il meccanismo di caricamento non è in grado di produrre; non porta infatti
+l'annotazione \texttt{@JvmOverloads}, che ne genererebbe le varianti. È la via attraverso la
+quale il comportamento del layer è verificabile in isolamento (\req{NF4}).
 
-\begin{description}
-    \item[\texttt{timeScale}] la durata reale rappresentata da un'unità di tempo simulato,
-    che insieme all'origine stabilisce la corrispondenza fra i due domini temporali
-    (Sezione~\ref{subsec:layer-corrispondenza});
-    \item[\texttt{timeOrigin}] l'istante reale a cui corrisponde lo zero del tempo di
-    simulazione. È nullo per default: in tal caso si assume come origine il primo istante
-    esposto dalla serie, ovvero la simulazione ha inizio nel momento in cui hanno inizio i
-    dati, che è la convenzione attesa nel caso più comune;
-    \item[\texttt{variable}] la grandezza da estrarre dai file
-    (Sezione~\ref{subsec:variabile-impl}). È nulla per default, nel qual caso viene
-    rilevata automaticamente.
-\end{description}
+Il secondo costruttore assume che i file siano già presenti sulla macchina e ne riceve la
+collocazione; tutti i file della cartella contribuiscono a formare un'unica serie. I restanti
+argomenti ne indicano l'interpretazione: la scala temporale, con valore predefinito di
+un'ora reale per unità di tempo simulato; l'origine, che con valore nullo di default indica
+il primo istante esposto dalla serie; e il nome della variabile, anch'esso nullo per default
+e in tal caso rilevato automaticamente. Tre di questi denotano tipi che il meccanismo di
+caricamento non sa costruire, ovvero \texttt{Path}, \texttt{Instant} e \texttt{Duration}, e
+sono pertanto dichiarati come stringhe e convertiti all'interno del costruttore.
 
-Il terzo costruttore riceve la descrizione di come ottenere i dati. Tre argomenti
-individuano la richiesta: \texttt{endpoint}, il data store da interpellare;
-\texttt{dataset}, il dataset da cui estrarre i dati; e \texttt{inputsFile}, la collocazione
-del file contenente la selezione dei parametri. Altri due sono destinati al gestore della
-cache: \texttt{cacheDirectory}, la cartella radice sotto la quale i dati vengono
-conservati, e \texttt{cdsApiRcFile}, la collocazione del file da cui leggere le
-credenziali. I restanti coincidono con quelli del costruttore precedente, poiché una volta
-ottenuti i file il comportamento è il medesimo.
+La durata e l'istante sono convertiti secondo il formato definito dallo standard ISO
+8601~\cite{iso8601}, compatto e convertibile senza ambiguità. Ad esempio, un istante può
+essere scritto come \texttt{2002-09-30T00:00:00Z} mentre una durata come \texttt{PT6H}. La
+conversione nel costruttore ha inoltre l'effetto di rilevare nel caricamento
+valori non validi, coerentemente con \req{NF7}.
 
-Resta \texttt{checkMd5}, che stabilisce se l'integrità dei file acquisiti debba essere
-verificata (Sezione~\ref{subsec:integrita-impl}), e la cui obbligatorietà discende dal
-vincolo sulla distinguibilità delle firme.
+Il terzo costruttore riceve la descrizione di come ottenere i dati. Quattro argomenti sono
+obbligatori: il data store da interpellare, il dataset, la collocazione del file contenente
+la selezione dei parametri e l'abilitazione della verifica del digest MD5 sui file scaricati.
+Seguono, nell'ordine, gli argomenti del costruttore precedente, poiché una volta ottenuti i
+file il comportamento è il medesimo; successivamente i tre destinati al recupero o produzione in cache: la
+cartella radice, la collocazione del file delle credenziali, che per default è quella
+prevista dal client ufficiale, e una durata limite entro la quale al provider è consentito
+provare a popolare la cartella con i dati. Il file delle credenziali viene letto solo nel momento in cui
+una richiesta di rete si rende necessaria: una simulazione che trovi i propri dati già in
+cache può quindi essere eseguita anche in assenza di credenziali valide.
 
-% SEGNAPOSTO CODICE 10
-% Inserire qui la dichiarazione dei due costruttori YAML di DoubleCopernicusLayer,
-% con l'annotazione @JvmOverloads e i valori predefiniti, omettendo il corpo.
-% Motivazione: rende concreto tutto quanto discusso in questa sezione. Se è troppo
-% lungo, basta il terzo costruttore, che è quello con il vincolo su checkMd5.
+Due argomenti dell'ultimo costruttore meritano una spiegazione. Il primo è la selezione dei
+parametri, che risiede in un file JSON separato anziché nella configurazione YAML. Questo
+poiché il meccanismo di caricamento attribuisce a certi nomi un significato proprio, ad
+esempio \texttt{type}, con cui è indicata la classe da istanziare, e lo stesso nome può
+comparire fra i parametri ammessi da alcuni dataset, dove designa ad esempio il tipo di
+rianalisi richiesta. Una selezione dichiarata direttamente nella configurazione non è quindi
+possibile, poiché il meccanismo interpreterebbe quella chiave come propria ed esigerebbe che
+il valore associato nomini una classe.
 
-\subsection{La conversione delle collocazioni}
-\label{subsec:percorsi-impl}
+Il secondo è l'abilitazione della verifica del digest MD5, mantenuta obbligatoria
+benché un valore predefinito sarebbe naturale. Ogni argomento facoltativo genera una
+variante della firma, ottenuta rimuovendo gli argomenti a partire dall'ultimo: la
+variante più corta di un costruttore è quindi formata dai soli argomenti obbligatori.
+Rendendo facoltativo anche questo argomenti, la firma più corta del terzo costruttore
+sarebbe \texttt{(Environment, String, String, String)}, la stessa che il secondo
+produce omettendo tutti i propri facoltativi. Sulla \ac{JVM} le due firme sarebbero
+indistinguibili e la classe non compilerebbe. Nemmeno collocare l'argomento altrove
+fra i facoltativi risolverebbe, poiché la variante più corta dipende dai soli
+argomenti obbligatori. Mantenerlo obbligatorio è dunque l'unico modo di conservare
+distinte le due modalità di costruzione.
 
-Le collocazioni sul file system, ricevute come stringhe, ammettono la notazione abbreviata
-che designa la cartella personale dell'utente. L'espansione è realizzata dal modulo, poiché
-non è compito del sistema operativo su tutte le piattaforme supportate, ed è deliberatamente
-limitata al caso della cartella dell'utente corrente: la forma che designa un utente diverso
-non viene espansa, essendo la sua risoluzione dipendente dal sistema.
+L'ordine degli argomenti non è indifferente. Di quelli facoltativi può essere omesso solo un
+suffisso (Sezione~\ref{subsec:alchemist-loader}), per cui sono dichiarati in ordine
+decrescente di probabilità d'uso. Ad esempio, i tre destinati alla cache seguono quelli
+sull'interpretazione dei dati perché è assai più frequente dover cambiare la scala temporale
+che non la collocazione della cache.
 
-% SEGNAPOSTO CODICE 11
-% Inserire qui String.expandUser() da Paths.kt (è breve, ci sta per intero).
-% Motivazione: mostra i casi trattati e quelli deliberatamente esclusi.
+L'environment, dichiarato da ciascuno dei tre, non compare invece fra gli argomenti della
+configurazione YAML, essendo iniettato automaticamente.
 
-\section{Il client per i data store Copernicus}
-\label{sec:client-impl}
+Il listato~\ref{lst:yaml} mostra un esempio della forma finale assunta dal layer dal punto di vista di chi
+conduce una simulazione, e costituisce la concretizzazione di \req{F11}: il layer, la sua
+sorgente di dati e le strategie con cui i valori vengono prodotti sono tutti dichiarati,
+senza scrivere codice.
 
-Il dialogo con i data store segue il paradigma descritto nella
-Sezione~\ref{sec:ogc-api-processes}, con alcune deviazioni che non compaiono nella
-documentazione dei servizi e sono state ricostruite sperimentalmente, osservando il
-comportamento del servizio e confrontandolo con quello del client ufficiale distribuito da
-ECMWF~\cite{datapi}. Il client ufficiale è scritto in Python e non è quindi utilizzabile
-dal simulatore; è stato adoperato come riferimento per il comportamento atteso, non come
-dipendenza.
+\lstinputlisting[language=YAML,label={lst:yaml}]{listings/implementazione/yaml.yml}
 
+La selezione dei parametri risiede nel file indicato, il cui contenuto è quello atteso dal
+servizio ed è riportato nel listato~\ref{lst:inputs}.
+
+% AGGIUNGI COLORAZIONE PER JSON
+\lstinputlisting[language=yaml,label={lst:inputs}]{listings/implementazione/2mt.json}
+
+Alla costruzione, il layer risolve la richiesta attraverso il gestore della cache, ottenendo
+una cartella di file; da essa costruisce la serie, ne riconduce l'asse temporale al tempo di
+simulazione e resta disponibile all'interrogazione. Ogni condizione che impedisca il
+completamento di questa sequenza si manifesta qui, al caricamento, e non durante
+l'esecuzione (\req{NF7}).
+
+\section{Il sottosistema di acquisizione}
+\label{sec:acquisizione-impl}
+
+\subsection{L'identità di una richiesta}
+\label{subsec:nome-cartella-impl}
+
+La Sezione~\ref{subsec:acquisizione-identita} ha stabilito che l'identità di una richiesta è
+data dal data store, dal dataset e dalla selezione dei parametri, e che di quest'ultima conta
+il contenuto e non l'ordine con cui i parametri compaiono. Resta da stabilire come tale
+equivalenza venga riconosciuta e tradotta in un nome di cartella.
+
+La selezione, non tipizzata, è letta come struttura generica di mappe e liste. Due selezioni
+equivalenti possono differire nell'ordine in cui le chiavi compaiono, differenza che il
+servizio ignora. La codifica adottata compie pertanto una sola normalizzazione: riordina
+ricorsivamente le chiavi di ogni mappa. L'ordine delle liste è invece preservato, poiché
+nelle richieste ai data store queste sono semantiche, come nel caso di un elenco di date o
+di livelli.
+
+\lstinputlisting[language=Kotlin,label={lst:canonical-json}]{listings/implementazione/CanonicalJson.kt}
+
+La terna formata dal data store, dal dataset e dalla selezione normalizzata dei parametri
+viene quindi data come argomento alla funzione di hash SHA-256~\cite{sha256}, del cui digest
+si conservano le prime sedici cifre esadecimali. Il nome della cartella in cache è composto
+dal nome del dataset, nel quale ogni carattere non ammesso dai file system è sostituito da
+un trattino basso, seguito da tali cifre.
+
+Il nome è un compromesso fra leggibilità e probabilità di collisione: la parte derivata dal
+dataset consente a chi conduce la simulazione di riconoscere la cartella ispezionando la
+cache, mentre le cifre del digest ne stabiliscono l'identità. La lunghezza scelta corrisponde
+a sessantaquattro bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
+trascurabile.
+
+\lstinputlisting[language=Kotlin,label={lst:coper-req}]{listings/implementazione/CopernicusRequest.kt}
+
+\subsection{L'atomicità della cache}
+\label{subsec:atomicita-impl}
+
+Il requisito \req{NF9} richiede che una voce di cache non sia mai osservabile in stato
+parziale, e distingue due forme di concorrenza che la realizzazione affronta con mezzi
+diversi.
+
+All'interno di una stessa esecuzione la produzione di una voce avviene al più una volta. Il
+gestore associa a ciascuna cartella di destinazione un monitor, 
+mantenuto in una mappa nel \texttt{companion object} della classe, in modo tale
+che sia condiviso fra tutte le
+istanze di \texttt{FileSystemCacheManager}: chi trova la voce assente lo acquisisce, e chi
+arriva dopo attende e poi verifica nuovamente la presenza della cartella, trovandola
+prodotta. Voci distinte, avendo un percorso diverso, restano indipendenti e possono quindi
+essere prodotte in parallelo.
+
+Fra esecuzioni distinte del simulatore non ci possono essere monitor condivisi, e la garanzia
+di validità della voce viene ottenuta dal file system. La produzione avviene pertanto in una
+cartella temporanea, resa visibile sotto il nome definitivo solo dopo che i dati sono stati
+correttamente acquisiti, con una singola operazione atomica.
+Due esecuzioni concorrenti possono così sovrapporsi: entrambe scaricano, ma solo la prima a
+concludere pubblica la propria cartella, mentre la seconda, vedendosi rifiutare l'operazione,
+riconosce che la voce esiste già e scarta il proprio lavoro.
+
+La cartella temporanea è rimossa in ogni caso in cui avvenga un errore, inclusi i fallimenti
+della fonte dati, così che nessuna voce incompleta resti nella cache. È inoltre verificato
+che la fonte abbia effettivamente prodotto almeno un file: una fonte che concluda il proprio
+operato senza errori ma senza scrivere nulla produrrebbe una voce vuota e permanente, che le
+esecuzioni successive tratterebbero come valida.
+
+L'implementazione di \texttt{FileSystemCacheManager} dà per scontato che una voce già
+presente in cache sia completa e utilizzabile. Non è quindi previsto alcun recupero da uno
+stato parziale, né alcuna riverifica del contenuto su una voce già presente.
+
+\lstinputlisting[language=Kotlin,label={lst:cache-manager}]{listings/implementazione/FileSystemCacheManager.kt}
+
+
+% CONTINUA DA QUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
 \subsection{Il ciclo di vita di una richiesta}
 \label{subsec:ciclo-richiesta-impl}
 
-Una richiesta attraversa tre fasi: la sottomissione, l'attesa del completamento e il
-recupero del risultato.
+Il dialogo con i data store segue il paradigma descritto nella
+Sezione~\ref{sec:ogc-api-processes}. Diversi aspetti del suo comportamento concreto non
+compaiono però nella documentazione dei servizi, e sono stati ricostruiti
+sperimentalmente, osservando le risposte del servizio e confrontandole con il codice del
+client ufficiale distribuito da ECMWF~\cite{ecmwf_datastores_client}. Quest'ultimo è
+scritto in Python, e non nei linguaggi impiegati nel simulatore (Java e Kotlin), 
+è stato quindi adoperato
+come riferimento per il comportamento atteso, non come dipendenza. Il modulo confina
+l'intero dialogo in una sola classe, che è l'unico punto in cui la struttura del protocollo
+è nota.
 
-La sottomissione avviene verso un percorso specifico del dataset, che nei data store
-Copernicus differisce da quello indicato dallo standard. Le fasi successive non
-ricostruiscono però i percorsi da interrogare: la risposta a ogni richiesta espone un
-elenco di collegamenti, ciascuno qualificato dal proprio ruolo, e il client segue quelli
-corrispondenti al monitoraggio e al recupero dei risultati. È questa scelta a rendere il
-client indipendente dalla struttura degli indirizzi esposti dal servizio.
+Una richiesta viene sottomessa in \texttt{POST} al percorso di esecuzione del processo.
+Lo standard descritto nella Sezione~\ref{sec:ogc-api-processes} lo definisce come
+\texttt{/processes/\{processID\}/execution}; i data store lo precedono con un prefisso
+proprio e assegnano al \emph{processID} il nome del dataset richiesto, per cui una
+richiesta a \ac{CDS} per il dataset \texttt{reanalysis-era5-single-levels} è sottomessa
+a\footnote{ECMWF Data Stores Processing API:
+\url{https://cds.climate.copernicus.eu/api/retrieve/v1/docs}.}:
 
-Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso:
-il client riconosce gli stati terminali e tratta come ancora in corso qualunque altro
-valore, incluso uno non previsto. Un'interpretazione rigida interromperebbe l'attesa alla
-comparsa di uno stato nuovo, laddove il comportamento corretto è continuare a interrogare
-il servizio.
+\begin{center}
+\texttt{https://cds.climate.copernicus.eu/api/retrieve/v1/processes/}\\
+\texttt{reanalysis-era5-single-levels/execution}
+\end{center}
 
-L'attesa procede per interrogazioni successive a intervalli crescenti, entro un limite
-massimo, per non gravare sul servizio durante le elaborazioni più lunghe.
+La parte che precede il prefisso è l'indirizzo del data store, ricevuto dal layer come
+argomento (Sezione~\ref{subsec:costruttori-impl}), ed è l'unica porzione che cambia fra
+\ac{CDS}, \ac{EWDS} e \ac{ADS}: il resto del percorso è comune ai tre. Il corpo della
+richiesta contiene la sola selezione dei parametri, associata alla chiave
+\texttt{inputs}. L'identità dell'utente non vi compare: viaggia, come in tutte le
+chiamate al servizio (tranne per lo scaricamento finale, privo di autenticazione),
+nell'intestazione dedicata \texttt{PRIVATE-TOKEN}.
 
-% SEGNAPOSTO CODICE 12
-% Inserire qui il metodo che sottomette la richiesta e attende il completamento in
-% CopernicusDataStoreProvider, o la sola porzione con il ciclo di attesa e la
-% classificazione dello stato.
-% Motivazione: è il cuore del client e il punto in cui le deviazioni descritte
-% sopra si traducono in codice.
+La risposta alla sottomissione espone l'indirizzo da interrogare in tre forme: un
+identificativo del processo, l'intestazione \texttt{Location} e un elenco di collegamenti.
+Il client segue il collegamento, e non ricostruisce mai un percorso a partire
+dall'identificativo. Le fasi successive procedono
+allo stesso modo, seguendo il collegamento di monitoraggio durante l'attesa e 
+quello dei risultati a completamento avvenuto.
 
-\subsection{I due canali di fallimento}
-\label{subsec:fallimenti-impl}
+Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso.
+Ciò avviene poiché la documentazione dei servizi non ne fornisce l'elenco, e il client ufficiale stesso lo
+tratta come stringa. Il modulo li ripartisce in tre categorie:
 
-Un tentativo di acquisizione può fallire in due modi distinti, che il servizio segnala in
-forme diverse.
+\begin{itemize}
+    \item \texttt{successful}, unico stato di successo, dopo il quale il collegamento ai
+    risultati è disponibile;
+    \item \texttt{accepted} e \texttt{running}, stati transitori durante i quali l'attesa
+    prosegue;
+    \item \texttt{failed}, \texttt{rejected}, \texttt{dismissed} e \texttt{deleted}, stati
+    terminali di fallimento, per i quali la causa va ricostruita e mostrata al modellista
+    (Sezione~\ref{subsec:fallimenti-impl}).
+\end{itemize}
 
-Il primo è un errore a livello di protocollo, segnalato da un codice di stato di errore e
-accompagnato da un corpo conforme alla convenzione per la descrizione dei problemi nelle
-API web~\cite{rfc7807}. In questo caso il messaggio più informativo non si trova nel campo
-descrittivo previsto dalla convenzione, ma nella traccia di esecuzione che il servizio vi
-allega.
+L'attesa procede per interrogazioni successive a intervalli raddoppiati a ogni tentativo,
+a partire da due secondi e fino a un massimo di due minuti.
+Una crescita esponenziale dell'intervallo tra una interrogazione e la successiva permette
+di evitare di effettuare chiamate di rete inutili per risorse il cui tempo di elaborazione
+è molto lungo.
+Poiché il crescere dell'intervallo rende le interrogazioni sempre più
+rade e un'elaborazione può protrarsi a lungo (Sezione~\ref{sec:ogc-api-processes}), il
+client segnala di essere ancora in attesa a intervalli regolari, così che un'esecuzione
+lunga non appaia bloccata. Un limite complessivo, di trenta minuti per default, interrompe
+l'attesa; poiché la durata di un'elaborazione dipende dall'ampiezza della richiesta,
+il limite è presente in modo opzionale fra gli argomenti del layer
+(Sezione~\ref{subsec:costruttori-impl}).
 
-Il secondo è il fallimento dell'elaborazione richiesta: il protocollo ha successo, la
-risposta ha esito positivo, e il fallimento è dichiarato dallo stato della richiesta. Il
-corpo, in questo caso, non segue la convenzione precedente, e la ragione del fallimento
-compare in un campo di primo livello.
-
-I due canali richiedono quindi interpretazioni distinte del corpo della risposta. Le
-funzioni che li interpretano non sollevano mai eccezioni: operano su un percorso già in
-errore, e un loro fallimento maschererebbe la causa originale sostituendovi la propria.
-
-% SEGNAPOSTO CODICE 13
-% Inserire qui parseProblemDetail da CopernicusParsers.kt.
-% Motivazione: mostra concretamente la scelta di non sollevare eccezioni su un
-% percorso già in errore, e l'estrazione del campo traceback.
+\lstinputlisting[language=Kotlin,label={lst:provider}]{listings/implementazione/DataStoreProvider.kt}
 
 \subsection{La verifica di integrità}
 \label{subsec:integrita-impl}
 
-Prima della consegna, il servizio espone alcune proprietà del file che si sta per
-scaricare, fra cui la dimensione e un digest. I nomi dei campi coincidono con quelli
-definiti da un'estensione dello standard \ac{STAC} per la descrizione dei file, ma il
-documento nel suo complesso non è un documento conforme a tale standard: la
-somiglianza è nella nomenclatura, non nella struttura.
+Fra le proprietà esposte prima della consegna finale, la dimensione in byte e il digest MD5
+consentono di accertare che il file ricevuto sia quello aspettato. La verifica avviene sul
+file scaricato. Se il file consegnato è un archivio, il digest e la dimensione si riferiscono
+a questo piuttosto che ai file che contiene, quindi la verifica viene effettuata prima
+di eventuali azioni di estrazione.
 
-Il digest esposto presenta inoltre una particolarità: viene rappresentato senza le cifre
-nulle iniziali. Un confronto diretto con il digest calcolato localmente fallirebbe pertanto
-su una frazione non trascurabile delle acquisizioni, pur essendo i file integri e
-correttamente leggibili; il valore ricevuto va quindi normalizzato prima del confronto.
+Il digest esposto presenta una particolarità non documentata: è rappresentato come numero
+esadecimale privo delle cifre nulle iniziali, e ha quindi lunghezza variabile, mentre il
+digest calcolato localmente ne ha sempre trentadue. Un confronto diretto fra le due stringhe
+fallirebbe quindi ogni volta che il digest del file comincia per zero, pur essendo il file
+integro e correttamente leggibile. Il valore ricevuto viene pertanto riportato alla lunghezza
+canonica prima del confronto.
 
-Anche con la normalizzazione, in prove sperimentali ripetute alcune acquisizioni hanno
-prodotto file integri a fronte di un digest non corrispondente. Il controllo non può quindi
-costituire l'unica condizione di accettazione, ed è reso disattivabile: la scelta è
-coerente con il client ufficiale, che verifica la sola dimensione dei file consegnati.
+Anche con la normalizzazione, in due occasioni nel corso dello sviluppo il confronto è
+fallito su file la cui dimensione coincideva con quella dichiarata e che la libreria di
+accesso ai formati leggeva senza errori: i dati acquisiti erano dunque utilizzabili. Non
+avendo potuto stabilire se la causa risieda nel modo in cui il servizio calcola il digest,
+la verifica di quest'ultimo è stata resa disattivabile, così che un'anomalia di
+questo tipo non impedisca di eseguire una simulazione con dati validi. La dimensione,
+unico controllo che il client ufficiale effettua, resta invece sempre verificata.
 
-% SEGNAPOSTO CODICE 14
-% Inserire qui la funzione di confronto dei digest da Integrity.kt, con la
-% normalizzazione padStart(32, '0').
-% Motivazione: è la deviazione più specifica e meno documentata fra quelle
-% riscontrate, e vale la pena mostrarla per esteso.
+\lstinputlisting[language=Kotlin,label={lst:verify}]{listings/implementazione/verify.kt}
 
-\subsection{L'autenticazione}
-\label{subsec:auth-impl}
+\subsection{Le modalità di fallimento}
+\label{subsec:fallimenti-impl}
 
-Le credenziali vengono lette dal file di configurazione previsto dal client ufficiale, così
-che un utente già configurato per quest'ultimo non debba fornirle nuovamente. Esse
-accompagnano tutte le richieste verso il servizio, con l'eccezione del recupero finale del
-file: l'indirizzo di scaricamento è già qualificato e non richiede autenticazione.
+Un tentativo di acquisizione può fallire in due modi distinti, che il servizio segnala in
+forme diverse, e la ricostruzione della causa è la parte che si è discostata
+maggiormente dal protocollo descritto nella Sezione~\ref{sec:ogc-api-processes}.
 
-% SEGNAPOSTO CODICE 15
-% Inserire qui il parsing di CdsApiRc.kt.
-% Motivazione: mostra il formato del file e la gestione del caso in cui manchi.
+Il primo è un errore a livello di protocollo, segnalato da un codice di stato di errore e
+accompagnato da un corpo conforme all'RFC 7807~\cite{rfc7807}. La convenzione prevede che
+la spiegazione leggibile risieda nel campo \texttt{detail}; i data store, però, lo popolano
+solo in parte, e collocano la traccia di esecuzione in \texttt{traceback}, campo di loro
+invenzione. Il client dà quindi la precedenza a \texttt{detail}, ripiega su
+\texttt{traceback} e, in mancanza di entrambi, sul titolo del problema.
 
-\section{La cache locale}
-\label{sec:cache-impl}
+Il secondo è il fallimento dell'elaborazione: qui il protocollo ha successo, la risposta ha
+esito positivo, e il fallimento è dichiarato dallo stato. Lo standard prevede in questo caso
+un campo di primo livello destinato al messaggio, che però i data store lasciano vuoto. La
+causa è raggiungibile per un'altra via: il collegamento ai risultati, che compare anche su
+una richiesta fallita, risponde con un errore il cui corpo è un problema descritto secondo la
+convenzione precedente, ed è lì che la traccia di esecuzione si trova. Il client segue quindi
+quel collegamento e ricade sul campo previsto dallo standard solo se questa via non produce
+nulla, mantenendolo perché una revisione futura del servizio che si allinei maggiormente allo
+standard descritto nella Sezione~\ref{sec:ogc-api-processes} potrebbe cominciare a popolarlo.
 
-\subsection{Dalla richiesta al nome della cartella}
-\label{subsec:nome-cartella-impl}
-
-La Sezione~\ref{subsec:acquisizione-identita} ha stabilito che l'identità di una richiesta è
-data dal data store, dal dataset e dalla selezione dei parametri, e che di quest'ultima
-conta il contenuto a meno della sua forma. Resta da stabilire come tale equivalenza venga
-riconosciuta e tradotta in un nome di cartella.
-
-La selezione viene ridotta a una forma canonica, nella quale le voci compaiono in un ordine
-prestabilito e la formattazione è normalizzata, così che due selezioni equivalenti
-producano la medesima rappresentazione. Da questa si ricava un digest, che costituisce il
-nome della cartella. Due artefatti distinti ma equivalenti individuano così la stessa voce
-di cache, mentre una qualunque modifica alla selezione ne individua una diversa
-(\req{NF5}).
-
-% SEGNAPOSTO CODICE 16
-% Inserire qui la funzione di canonicalizzazione di CanonicalJson.kt e il punto in
-% cui CopernicusRequest la usa per produrre il nome della cartella.
-% Motivazione: è ciò che rende verificabile l'affermazione sulla riproducibilità.
-
-\subsection{L'atomicità della scrittura}
-\label{subsec:atomicita-impl}
-
-Il requisito \req{NF9} richiede che una voce di cache non sia mai osservabile in stato
-parziale. La scrittura avviene pertanto in una cartella temporanea, resa visibile sotto il
-nome definitivo solo a operazione conclusa, con una singola operazione di rinomina che il
-file system garantisce atomica.
-
-Due esecuzioni concorrenti che richiedano gli stessi dati possono così sovrapporsi senza
-danno: entrambe scaricano, ma solo la prima a concludere rende visibile la propria
-cartella, e la seconda riconosce che la voce esiste già e scarta il proprio lavoro. Il
-prezzo è uno scaricamento ridondante in un caso raro, a fronte di una garanzia che non
-richiede alcun meccanismo di sincronizzazione fra processi distinti.
-
-Ne discende un'invariante che il resto del modulo dà per acquisita: se una cartella di
-cache esiste, il suo contenuto è completo.
-
-% SEGNAPOSTO CODICE 17
-% Inserire qui il metodo di FileSystemCacheManager che esegue la sequenza
-% cartella temporanea -> produzione -> rinomina, con il blocco try/finally e la
-% cattura di FileSystemException sul percorso di corsa.
-% Motivazione: è il punto in cui NF9 viene effettivamente soddisfatto.
+\lstinputlisting[language=Kotlin,label={lst:problem-detail}]{listings/implementazione/ProblemDetail.kt}

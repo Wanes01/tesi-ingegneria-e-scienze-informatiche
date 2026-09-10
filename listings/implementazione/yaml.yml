@@ -11,4 +11,3 @@ layers:
       variable: null
       interpolation:
         - type: TrilinearInterpolation
-          parameters: []

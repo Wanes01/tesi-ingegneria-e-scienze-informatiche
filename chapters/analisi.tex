@@ -169,31 +169,26 @@ i cui componenti siano dichiarabili direttamente nella configurazione di una sim
     data store Copernicus, così che la prima resti utilizzabile anche con fonti diverse da
     quelle qui considerate.
 
-    \item \textbf{NF3 (Aderenza alle convenzioni di Alchemist)}: \label{req:NF3} il codice è
-    destinato a una pull request verso il repository del simulatore, e deve quindi
-    rispettarne le convenzioni di stile, di collocazione dei package e di configurazione
-    degli strumenti di analisi statica.
-
-    \item \textbf{NF4 (Testabilità senza rete)}: \label{req:NF4} nessun test deve dipendere
+    \item \textbf{NF3 (Testabilità senza rete)}: \label{req:NF3} nessun test deve dipendere
     dalla disponibilità dei data store Copernicus o dal possesso di credenziali valide.
 
-    \item \textbf{NF5 (Riproducibilità)}: \label{req:NF5} la stessa richiesta verso un data
+    \item \textbf{NF4 (Riproducibilità)}: \label{req:NF4} la stessa richiesta verso un data
     store deve corrispondere in modo deterministico alla stessa voce di cache.
 
-    \item \textbf{NF6 (Fallimento esplicito)}: \label{req:NF6} nessuna condizione anomala
+    \item \textbf{NF5 (Fallimento esplicito)}: \label{req:NF5} nessuna condizione anomala
     deve produrre un valore silenziosamente scorretto: deve produrre un errore con un
     messaggio diagnostico.
 
-    \item \textbf{NF7 (Fallimento anticipato)}: \label{req:NF7} le condizioni che
+    \item \textbf{NF6 (Fallimento anticipato)}: \label{req:NF6} le condizioni che
     impediscono a una simulazione di disporre dei dati di cui ha bisogno devono
     manifestarsi al caricamento della simulazione, e non durante l'esecuzione.
 
-    \item \textbf{NF8 (Costo dell'interrogazione)}: \label{req:NF8} il valore di un layer
+    \item \textbf{NF7 (Costo dell'interrogazione)}: \label{req:NF7} il valore di un layer
     viene richiesto potenzialmente molte volte per ogni evento della simulazione: la lettura
     non deve comportare accessi a risorse esterne, e il suo costo non deve dipendere dalla
     provenienza dei dati.
 
-    \item \textbf{NF9 (Uso concorrente della cache)}: \label{req:NF9} Alchemist consente
+    \item \textbf{NF8 (Uso concorrente della cache)}: \label{req:NF8} Alchemist consente
     l'esecuzione simultanea di più simulazioni; più esecuzioni che condividano la stessa
     cache e richiedano gli stessi dati non devono interferire fra loro, né produrre voci di
     cache incomplete o corrotte.
@@ -296,7 +291,7 @@ Sul dominio spaziale, ogni dataset copre una regione geografica delimitata, e un
 esterna a essa non corrisponde ad alcuna misura. Produrre comunque un valore, ad esempio
 riportando la posizione al bordo della copertura, significherebbe restituire un numero
 plausibile ma privo di fondamento nei dati, tanto più fuorviante quanto più la posizione
-richiesta è lontana dalla regione coperta; ciò contrasterebbe con \req{NF6}, che vieta la
+richiesta è lontana dalla regione coperta; ciò contrasterebbe con \req{NF5}, che vieta la
 produzione di valori silenziosamente scorretti. Il layer è quindi definito sulla sola
 estensione spaziale dei dati che espone, e una richiesta al di fuori di essa è da
 considerarsi un errore di modellazione della simulazione, da segnalare come tale.
@@ -372,7 +367,7 @@ lavoro soggetta a condizioni fuori dal controllo del modulo: la rete può non es
 disponibile, le credenziali possono mancare o essere scadute, il servizio può rifiutare la
 richiesta o consegnare dati incompleti.
 
-Il requisito \req{NF7} stabilisce che tutte queste condizioni si manifestino al momento del
+Il requisito \req{NF6} stabilisce che tutte queste condizioni si manifestino al momento del
 caricamento della simulazione: una simulazione parte solo se dispone di tutti i dati di
 cui ha bisogno, altrimenti non parte affatto, segnalando il motivo.
 
@@ -472,7 +467,7 @@ essa risponde.
     layer, compreso il caso in cui i campioni necessari a produrlo siano assenti. È ciò che
     consente al layer di esporre anche grandezze la cui interpretazione non è quantitativa.
 
-    \item \texttt{CacheKey} (\req{F10}, \req{NF5}): la descrizione dei dati da ottenere da
+    \item \texttt{CacheKey} (\req{F10}, \req{NF4}): la descrizione dei dati da ottenere da
     una fonte esterna. Ne costituisce l'identità, nel senso che due descrizioni uguali
     individuano gli stessi dati: è questo a rendere possibile riconoscere se sono già stati
     ottenuti in precedenza e quindi individuabili in cache.

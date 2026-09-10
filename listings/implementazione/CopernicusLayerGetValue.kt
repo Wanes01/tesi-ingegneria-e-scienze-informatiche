@@ -22,9 +22,5 @@ private fun sample(position: GeoPosition, gridBeforeIndex: Int, gridAfterIndex: 
     return converter.convert(interpolation.interpolate(position, gridBefore, gridAfter, timeWeight))
 }
 
-private fun sampleExactSlice(position: GeoPosition, gridIndex: Int): T = sample(
-    position,
-    gridIndex,
-    gridIndex,
-    0.0,
-)
+private fun sampleExactSlice(position: GeoPosition, gridIndex: Int): T =
+    sample(position, gridIndex, gridIndex, 0.0)

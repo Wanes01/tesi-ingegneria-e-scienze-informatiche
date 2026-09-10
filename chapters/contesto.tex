@@ -77,9 +77,13 @@ Alchemist modella queste grandezze attraverso il concetto di \emph{layer}: una
 sovrapposizione di dati distribuita sull'ambiente, associata a una molecola e
 interrogabile da qualunque punto dello spazio. Formalmente, un \texttt{Layer<T, P>} è
 una funzione che associa a ogni posizione di tipo \texttt{P} dell'environment un
-valore di tipo \texttt{T}. L'interfaccia si riduce a un solo metodo:
+valore di tipo \texttt{T}. Il \Cref{lst:layer-interface} ne mostra l'interfaccia.
 
-\lstinputlisting[language=Java,label={lst:layer-interface}]{listings/Layer.java}
+\lstinputlisting[
+    language=Java,
+    label={lst:layer-interface},
+    caption={L'interfaccia del Layer.}
+]{listings/Layer.java}
 
 Un nodo può quindi interrogare un
 layer con la propria posizione corrente e ottenere il valore che il layer associa a
@@ -135,26 +139,39 @@ con cui costruirlo. Questo meccanismo, basato sulla reflection, non è un sempli
 di configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
 a essere istanziata da YAML.
 
-Il layer gaussiano introdotto nella Sezione~\ref{subsec:alchemist-layer} è costruito dal
-seguente costruttore, di sei parametri, di cui il primo (\texttt{baseline}) e l'ultimo
-(\texttt{sigmaY}) sono opzionali:
+Il layer gaussiano introdotto nella Sezione~\ref{subsec:alchemist-layer} è costruito
+da un costruttore di sei parametri (\Cref{lst:bidimensional-gaussian-layer-kotlin}), 
+di cui il primo (\texttt{baseline}) e l'ultimo
+(\texttt{sigmaY}) sono opzionali.
 
-\lstinputlisting[language=Kotlin,label={lst:bidimensional-gaussian-layer-kotlin}]{listings/BidimensionalGaussianLayer.kt}
+\lstinputlisting[
+    language=Kotlin,
+    label={lst:bidimensional-gaussian-layer-kotlin},
+    caption={Costruttore di BidimensionalGaussianLayer.}
+]{listings/BidimensionalGaussianLayer.kt}
 
 Il loader individua la classe indicata dalla chiave \texttt{type}, ne seleziona un
 costruttore compatibile con gli argomenti forniti e lo invoca tramite reflection. Nella
-forma più diretta, i parametri sono specificati posizionalmente:
+forma più diretta, mostrato dal \Cref{lst:bidimensional-gaussian-layer}, i parametri sono specificati posizionalmente.
 
-\lstinputlisting[language=YAML,label={lst:bidimensional-gaussian-layer}]{listings/bidimensional.yml}
+\lstinputlisting[
+    language=YAML,
+    label={lst:bidimensional-gaussian-layer},
+    caption={Costruzione posizionale di BidimensionalGaussianLayer.}
+]{listings/bidimensional.yml}
 
-la chiave \texttt{molecule} indica la molecola a cui il layer viene associato
+La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
 nell'environment, mentre \texttt{parameters} elenca gli argomenti del costruttore. I
 quattro valori forniti vengono associati, nell'ordine, a \texttt{centerX},
 \texttt{centerY}, \texttt{norm} e \texttt{sigmaX}, mentre \texttt{baseline} e
 \texttt{sigmaY} assumono i rispettivi valori di default. La costruzione equivalente, se
-scritta direttamente in Kotlin, sarebbe:
+scritta direttamente in Kotlin, sarebbe quella mostrata dal \Cref{lst:bidimensional-gaussian-equivalent}.
 
-\lstinputlisting[language=Kotlin,label={lst:bidimensional-gaussian-equivalent}]{listings/bidimensional-equivalent.kt}
+\lstinputlisting[
+    language=Kotlin,
+    label={lst:bidimensional-gaussian-equivalent},
+    caption={Costruzione equivalente in Kotlin di BidimensionalGaussianLayer.}
+]{listings/bidimensional-equivalent.kt}
 
 Che i parametri opzionali possano essere omessi non è però una capacità del loader: gli
 argomenti di default sono una nozione di Kotlin, invisibile alla reflection della \ac{JVM}, e a
@@ -167,9 +184,13 @@ fornire anche \texttt{baseline}, che lo precede.
 L'ordine in cui i parametri opzionali sono dichiarati non è quindi indifferente.
 
 Oltre che per via posizionale, i parametri possono essere specificati anche tramite il
-nome dell'argomento a cui si riferiscono:
+nome dell'argomento a cui si riferiscono, come mostrato dal \Cref{lst:bidimensional-gaussian-layer-named}.
 
-\lstinputlisting[language=YAML,label={lst:bidimensional-gaussian-layer-named}]{listings/bidimensional-names.yml}
+\lstinputlisting[
+    language=YAML,
+    label={lst:bidimensional-gaussian-layer-named},
+    caption={Costruzione esplicita di BidimensionalGaussianLayer.}
+]{listings/bidimensional-names.yml}
 
 Questa forma elimina l'ambiguità sull'ordine e rende esplicito a quale parametro ciascun
 valore si riferisca, ma resta soggetta al vincolo appena descritto.
@@ -348,4 +369,3 @@ di errore e la rende interpretabile.
 I data store \ac{ECMWF} si ispirano a questo paradigma, ma se ne discostano su più punti,
 alcuni dei quali non documentati. Tali scostamenti hanno determinato scelte
 implementative del sottosistema di acquisizione, e sono discussi nel Capitolo ~\ref{chap:implementazione}.
-\emph{\textbf{("??" = link al capitolo di implementazione, attualmente assente)}}

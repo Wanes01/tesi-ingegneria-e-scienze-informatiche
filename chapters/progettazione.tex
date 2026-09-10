@@ -70,7 +70,7 @@ Il modulo adotta l'ultima, usando \texttt{Double.NaN} come unica rappresentazion
 del dato mancante. La motivazione è duplice. In primo luogo, \texttt{NaN} è un valore del
 tipo \texttt{Double}: la sua adozione non introduce incapsulamento e preserva la
 possibilità di memorizzare le griglie in vettori di primitivi, coerentemente con
-\req{NF8}. In secondo luogo, \texttt{NaN} si propaga automaticamente attraverso le
+\req{NF7}. In secondo luogo, \texttt{NaN} si propaga automaticamente attraverso le
 operazioni aritmetiche, una proprietà che può essere utile nelle regole di risoluzione se
 si sceglie di lasciar propagare questo valore fino al convertitore, il quale decide cosa
 esporre (Sezione~\ref{subsec:conversione}).
@@ -116,10 +116,6 @@ su un'area prevalentemente continentale, riporta una misura in quasi tutte le ce
 della griglia; una grandezza come la portata fluviale è invece definita solo lungo i
 corsi d'acqua, e lascia priva di misura la maggior parte della griglia.
 
-La scelta fra le due non ricade su chi configura la simulazione: viene effettuata
-dinamicamente alla lettura del file, sulla base della densità osservata dei campioni.
-Il criterio di scelta è descritto nel Capitolo~\ref{chap:implementazione}.
-
 Si noti che la distinzione è invisibile a chi usa la griglia:
 chi vi accede vede unicamente il tipo \texttt{RasterGrid}, e le due realizzazioni
 differiscono solo per il compromesso fra memoria occupata e costo di accesso.
@@ -135,10 +131,10 @@ adiacenti a quello richiesto; la seconda, di ottenere le griglie corrispondenti.
 
 La realizzazione fornita, \texttt{EagerGridSnapshots}, costruisce l'intera serie in memoria
 al momento della costruzione, leggendo tutti i file presenti in una cartella. La scelta
-risponde a \req{NF8}: spostando l'intero accesso al file system nella fase di costruzione,
+risponde a \req{NF7}: spostando l'intero accesso al file system nella fase di costruzione,
 ogni successiva lettura del layer opera su entità già residenti in memoria, con un costo
 indipendente dal formato di origine e dal numero di file da cui la serie è stata ricavata.
-La stessa scelta soddisfa \req{NF7}, poiché un file illeggibile o incoerente con gli
+La stessa scelta soddisfa \req{NF6}, poiché un file illeggibile o incoerente con gli
 altri si manifesta al caricamento della simulazione anziché durante l'esecuzione.
 
 Il prezzo è che l'occupazione di memoria cresce con l'estensione della serie e dell'area
@@ -154,7 +150,7 @@ anche quale fra le variabili presenti debba essere estratta. Il nome della varia
 essere omesso quando i file ne contengono una sola, caso in cui essa è individuata
 senza ambiguità.
 Il modo in cui una variabile viene individuata ed estratta da un file è discusso nel
-Capitolo~\ref{chap:implementazione}. \textbf{\emph{(Capitolo di implementazione)}}
+Capitolo~\ref{chap:implementazione}.
 
 \section{Le strategie di risoluzione dei valori}
 \label{sec:risoluzione}
@@ -420,7 +416,7 @@ Disponendo delle griglie, il layer può verificare che la posizione richiesta ri
 regione da esse coperta. La verifica attua la delimitazione stabilita nella
 Sezione~\ref{subsec:estensione-spaziale}: una posizione esterna non individua alcuna
 misura, e la richiesta viene respinta anziché produrre un valore plausibile ma infondato
-(\req{NF6}).
+(\req{NF5}).
 
 Superata la verifica, il layer calcola il peso temporale, che esprime la posizione relativa
 dell'istante richiesto fra le due griglie nella forma attesa dalla strategia di
@@ -430,7 +426,7 @@ Le due deleghe finali affidano a componenti esterni al layer le decisioni che di
 dalla semantica della grandezza esposta: la produzione del valore numerico a partire dai
 campioni adiacenti (\req{F4}) e la sua traduzione nel tipo esposto ai nodi (\req{F6}).
 
-Nessuno di questi passi accede a risorse esterne, come \req{NF8} richiede: la serie di
+Nessuno di questi passi accede a risorse esterne, come \req{NF7} richiede: la serie di
 griglie è già residente in memoria, e la corrispondenza temporale è stata fissata alla
 costruzione.
 
@@ -455,7 +451,7 @@ riducendosi così alla prima. Poiché ciò che le distingue riguarda
 esclusivamente il modo in cui la serie viene ottenuta, e non ciò che il layer ne
 fa una volta ottenuta, il comportamento del layer è verificabile in isolamento
 fornendo direttamente una serie, senza leggere file né accedere alla rete, come
-\req{NF4} richiede.
+\req{NF3} richiede.
 
 L'ipotesi stabilita nella Sezione~\ref{subsec:griglie-supportate} riguarda la forma della griglia,
 ma non la provenienza dei file. Un dataset campionato su una griglia in proiezione
@@ -467,7 +463,7 @@ questo caso: il file convertito viene letto come qualunque altro.
 In tutte e tre le modalità, inoltre, l'acquisizione e la lettura dei dati
 avvengono per intero durante la costruzione del layer, ovvero al caricamento
 della simulazione: è quindi lì che si manifesta ogni condizione che impedisca
-alla simulazione di disporre dei dati di cui ha bisogno, come \req{NF7} richiede. 
+alla simulazione di disporre dei dati di cui ha bisogno, come \req{NF6} richiede. 
 
 La classe \texttt{CopernicusLayer<T>} è generica nel tipo esposto; il modulo fornisce anche
 \texttt{DoubleCopernicusLayer}, che ne fissa il parametro al tipo numerico. La sua
@@ -478,8 +474,7 @@ strategie possono essere stabiliti, cosa non possibile nella classe generica, no
 definibile un convertitore predefinito verso un tipo arbitrario.
 
 Il modo in cui vengono definiti i tre costruttori e i valori di default dei loro
-argomenti sono discussi nel Capitolo~\ref{chap:implementazione}. \textbf{\emph{(Capitolo di implementazione)}}
-
+argomenti sono discussi nel Capitolo~\ref{chap:implementazione}.
 \section{Il sottosistema di acquisizione dati}
 \label{sec:acquisizione}
 
@@ -546,13 +541,13 @@ realizzare soltanto la coppia \texttt{CacheKey} ed \texttt{ExternalDataProvider<
 corrispondente, senza modificare né il gestore della cache né alcuna delle parti già
 descritte.
 
-Come il gestore della cache riesce a soddisfare il requisito \req{NF9} è descritto
-nel Capitolo~\ref{chap:implementazione}. \textbf{\emph{(Capitolo di implementazione)}}
+Come il gestore della cache riesce a soddisfare il requisito \req{NF8} è descritto
+nel Capitolo~\ref{chap:implementazione}.
 
 \subsection{L'identità di una richiesta}
 \label{subsec:acquisizione-identita}
 
-Il requisito \req{NF5} chiede che la stessa richiesta corrisponda in modo deterministico
+Il requisito \req{NF4} chiede che la stessa richiesta corrisponda in modo deterministico
 alla stessa voce di cache, ed è ciò che rende possibile \req{F10}. Ciò richiede di
 stabilire che cosa costituisca l'identità di una richiesta verso un data store Copernicus,
 e come tale identità venga tradotta in un nome di cartella.

@@ -1,5 +1,4 @@
 internal fun readPermutedSlice(axes: FileAxes, t: Int, nLat: Int, nLon: Int): CdmArray {
-    // origin/shape are positional relative to the variable's own axis order in the file
     val origin = IntArray(3).also { array ->
         array[axes.timePosition] = t
         array[axes.latPosition] = 0
@@ -10,11 +9,11 @@ internal fun readPermutedSlice(axes: FileAxes, t: Int, nLat: Int, nLon: Int): Cd
         array[axes.latPosition] = nLat
         array[axes.lonPosition] = nLon
     }
-    // reorders slice to (time, lat, lon)
+    // rearrange the slice into (time, lat, lon)
     return axes.variable
         .read(origin, shape)
         .permute(intArrayOf(axes.timePosition, axes.latPosition, axes.lonPosition))
-        .copy()
+        .copy() // permute returns a view
 }
 
 internal fun flattenAscending(

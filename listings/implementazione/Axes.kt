@@ -2,10 +2,7 @@ internal fun nearestIndex(axis: DoubleArray, coordinate: Double): Int {
     require(axis.isNotEmpty()) { "Axis cannot be empty." }
     require(!coordinate.isNaN()) { "The query coordinate cannot be NaN." }
     val binarySearchResult = Arrays.binarySearch(axis, coordinate)
-    /*
-     * binarySearch returns -(insertionPoint) - 1 when no match is found. Inverting the formula
-     * yields the insertion point: the index of the first node strictly greater than the coordinate.
-     */
+    // binarySearch returns -(insertionPoint) - 1 when no match is found.
     val upperIndex = -binarySearchResult - 1
     return when {
         binarySearchResult >= 0 -> binarySearchResult

@@ -5,38 +5,63 @@
 % LISTING CONFIGURATIONS
 %-----------------------------------------------------
 
-\crefname{lstlisting}{listing}{listing}	
-\Crefname{lstlisting}{Listing}{Listing}
-\renewcommand\lstlistlistingname{List of Listings}
+\AtBeginDocument{\counterwithin{lstlisting}{chapter}}
+
+\crefname{lstlisting}{listato}{listati}
+\Crefname{lstlisting}{Listato}{Listati}
+\renewcommand\lstlistingname{Listato}
+\renewcommand\lstlistlistingname{Elenco dei listati}
+\captionsetup[lstlisting]{skip=6pt}
+
+\definecolor{codekeyword}{RGB}{0,70,175}     % blu netto
+\definecolor{codetype}{RGB}{140,80,0}        % ambra scura (annotazioni, tipi)
+\definecolor{codestring}{RGB}{0,110,60}      % verde bosco
+\definecolor{codecomment}{RGB}{110,110,110}  % grigio medio
+\definecolor{codenumber}{RGB}{175,175,175}
+\definecolor{coderule}{RGB}{195,195,195}
 
 \lstset{
-	showstringspaces=false,
-	basicstyle=\scriptsize\ttfamily,
-	commentstyle={\color{olive}},
-	identifierstyle=\color{black},
-	ndkeywordstyle={\color{blue}},
-	stringstyle={\color{magenta}},
-	emphstyle={},
-	keywordstyle={\color{blue}},
-	breaklines=true,
-	numbers=left,
-	numberstyle=\tiny\color{gray},
-	numbersep=10pt,
-	tabsize=2,
-	extendedchars=true,
-	frame=trBL,
-	frameround=fttt,
+    showstringspaces=false,
+    basicstyle=\scriptsize\ttfamily,
+    keywordstyle=\bfseries\color{codekeyword},
+    ndkeywordstyle=\color{codetype},
+    identifierstyle=\color{black},
+    commentstyle=\itshape\color{codecomment},
+    stringstyle=\color{codestring},
+    emphstyle={},
+    breaklines=true,
+    postbreak=\mbox{\textcolor{codenumber}{$\hookrightarrow$}\space},
+    captionpos=b,
+    numbers=left,
+    numberstyle=\tiny\color{codenumber},
+    numbersep=10pt,
+    tabsize=2,
+    extendedchars=true,
+    frame=lines,
+    rulecolor=\color{coderule},
+    framexleftmargin=3pt,
+    xleftmargin=12pt,
+    aboveskip=1em,
+    belowskip=1em,
 }
 
 \lstdefinelanguage{Kotlin}{
-	comment=[l]{//},
-	emph={delegate, filter, first, firstOrNull, forEach, lazy, map, mapNotNull, println, return@},
-	keywords={abstract, actual, as, as?, break, by, class, companion, continue, data, do, dynamic, else, enum, expect, false, final, for, fun, get, if, import, in, interface, internal, is, null, object, override, package, private, public, return, set, super, suspend, this, throw, true, try, typealias, val, var, vararg, when, where, while},
-	morecomment=[s]{/*}{*/},
-	morestring=[b]",
-	morestring=[s]{"""*}{*"""},
-	ndkeywords={@Deprecated, @JvmField, @JvmName, @JvmOverloads, @JvmStatic, @JvmSynthetic, Array, Byte, Double, Float, Int, Integer, Iterable, Long, Runnable, Short, String, Unit, it},
-	sensitive=true
+    comment=[l]{//},
+    emph={delegate, filter, first, firstOrNull, forEach, lazy, map, mapNotNull, println, return@},
+    keywords={abstract, actual, annotation, as, as?, break, by, class, companion, const,
+              constructor, continue, data, do, dynamic, else, enum, expect, false, final,
+              for, fun, get, if, import, in, init, inline, interface, internal, is, lateinit,
+              null, object, open, operator, out, override, package, private, protected,
+              public, reified, return, sealed, set, super, suspend, this, throw, true, try,
+              typealias, val, var, vararg, when, where, while},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]",
+    morestring=[s]{"""*}{*"""},
+    ndkeywords={@Deprecated, @JvmField, @JvmName, @JvmOverloads, @JvmStatic, @JvmSynthetic,
+                Any, Array, Boolean, Byte, Char, Double, Duration, Float, Instant, Int,
+                Integer, Iterable, List, Long, Map, Nothing, Path, Runnable, Serializable,
+                Set, Short, String, Unit, it},
+    sensitive=true
 }
 
 % yml colors
@@ -52,4 +77,16 @@
   morestring=[b]',
   morestring=[b]",
   stringstyle=\color{yamlstring},
+}
+
+\lstdefinelanguage{json}{
+  literate=*{:}{{{\color{blue}:}}}{1}
+            {,}{{{\color{blue},}}}{1}
+            {\{}{{{\color{blue}\{}}}{1}
+            {\}}{{{\color{blue}\}}}}{1}
+            {[}{{{\color{blue}[}}}{1}
+            {]}{{{\color{blue}]}}}{1},
+  morestring=[b]",
+  stringstyle=\color{yamlstring},
+  showstringspaces=false,
 }

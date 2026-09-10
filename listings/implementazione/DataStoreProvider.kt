@@ -18,5 +18,3 @@ private fun awaitSuccess(monitorUrl: String): String {
         interval = (interval * 2).coerceAtMost(maxPollInterval)
     }
 }
-//Attesa del completamento di una richiesta. Il ramo degli stati transitori,
-           omesso, segnala periodicamente che l'attesa prosegue.

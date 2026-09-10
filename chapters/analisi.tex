@@ -384,14 +384,8 @@ localmente, ed è lecito chiedersi se sia adeguata ad accogliere dati misurati
 provenienti da fonti esterne. Delimitati i requisiti, la domanda viene affrontata
 verificando quali fra essi pongano condizioni sulla forma dell'interrogazione
 anziché sul modo in cui il valore viene prodotto.
-
 Nessuno fra i requisiti funzionali riguarda la forma con cui il valore viene richiesto:
-tutti riguardano il modo in cui esso viene prodotto. In particolare, \req{F1}, \req{F2} e \req{F4} pongono
-condizioni sul valore restituito da un'interrogazione la cui firma resta quella esistente;
-\req{F3} riguarda una corrispondenza fissata alla costruzione del layer;
-\req{F5}, \req{F6} e \req{F7} riguardano componenti interni al layer; \req{F8}, \req{F9} e
-\req{F10} riguardano l'origine dei dati, che il layer riceve già costruiti; \req{F11}
-riguarda il meccanismo di caricamento, esterno all'interfaccia.
+tutti riguardano il modo in cui esso viene prodotto.
 
 Resta una sola limitazione, ed è di natura diversa. Il valore restituito da un layer che
 espone dati misurati può, in linea di principio, cambiare in due modi distinti: perché il
@@ -475,7 +469,7 @@ essa risponde.
     \item \texttt{ExternalDataProvider} (\req{F9}, \req{NF2}): la fonte in grado di
     soddisfare una descrizione, consegnando i dati corrispondenti in forma di file.
 
-    \item \texttt{CacheManager} (\req{F9}, \req{F10}, \req{NF9}): l'entità che, data una
+    \item \texttt{CacheManager} (\req{F9}, \req{F10}, \req{NF8}): l'entità che, data una
     descrizione, restituisce i dati corrispondenti, interpellando la fonte esterna solo
     quando questi non siano già disponibili localmente.
 \end{itemize}

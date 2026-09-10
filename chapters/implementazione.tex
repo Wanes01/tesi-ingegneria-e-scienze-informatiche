@@ -447,7 +447,8 @@ variante della firma, ottenuta rimuovendo gli argomenti a partire dall'ultimo: l
 variante più corta di un costruttore è quindi formata dai soli argomenti obbligatori.
 Rendendo facoltativo anche questo argomento, la firma più corta del terzo costruttore
 sarebbe \texttt{(Environment, String, String, String)}, la stessa che il secondo
-produce omettendo tutti i propri facoltativi. Sulla \ac{JVM} le due firme sarebbero
+produce omettendo \texttt{variable}, \texttt{interpolation} e \texttt{converter}.
+Sulla \ac{JVM} le due firme sarebbero
 indistinguibili e la classe non compilerebbe. Nemmeno collocare l'argomento altrove
 fra i facoltativi risolverebbe, poiché la variante più corta dipende dai soli
 argomenti obbligatori. Mantenerlo obbligatorio è dunque l'unico modo di conservare

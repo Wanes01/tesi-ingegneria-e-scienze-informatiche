@@ -122,7 +122,7 @@ tempo, è il layer stesso a doverselo procurare per questa via.
 \label{subsec:alchemist-osm}
 
 Alchemist offre un supporto già maturo per simulazioni su cartografia
-reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap e collocare i
+reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap~\cite{osm} e collocare i
 nodi al suo interno, vincolandone il movimento a una rete stradale e delegando il calcolo
 dei percorsi a GraphHopper~\footnote{Motore di calcolo dei percorsi GraphHopper: \url{https://www.graphhopper.com/}.}.
 Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
@@ -272,7 +272,7 @@ dettaglio:
 
 \begin{itemize}
 \item \ac{GRIB}, distribuito dai data store nelle versioni GRIB1 e GRIB2, è uno standard
-    binario definito dalla \ac{WMO}, con l'obiettivo di
+    binario definito dalla \ac{WMO}~\cite{wmo306}, con l'obiettivo di
     trasmettere in modo efficiente i grandi volumi di dati prodotti dai modelli
     meteorologici. Un file \ac{GRIB} non è autosufficiente dal punto di vista semantico:
     la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
@@ -284,7 +284,7 @@ dettaglio:
 \item \ac{NetCDF}, distribuito dai data store nelle versioni NetCDF3 e NetCDF4, è un formato
     sviluppato e mantenuto da Unidata, un programma comunitario dell'\ac{UCAR},
     orientato all'accesso e alla condivisione di dati scientifici
-    multidimensionali. A differenza di \ac{GRIB}, un file \ac{NetCDF} è
+    multidimensionali~\cite{netcdffile}. A differenza di \ac{GRIB}, un file \ac{NetCDF} è
     autodescrittivo: nomi delle variabili, unità di misura e altri metadati
     sono incorporati nel file stesso. Il formato di per sé impone però una
     struttura minima; per questo la comunità scientifica ha definito

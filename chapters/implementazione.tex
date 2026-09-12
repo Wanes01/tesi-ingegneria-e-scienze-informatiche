@@ -668,6 +668,11 @@ file scaricato. Se il file consegnato è un archivio, il digest e la dimensione 
 a questo piuttosto che ai file che contiene, quindi la verifica viene effettuata prima
 di eventuali azioni di estrazione.
 
+Le due proprietà sono esposte con i nomi \texttt{file:size} e \texttt{file:checksum} definiti
+dalla File Info Extension di STAC~\cite{stacfile}, che però specifica per il checksum
+un multihash, ossia un digest preceduto dall'identificatore dell'algoritmo e dalla
+propria lunghezza. Il valore dato dai data store è invece il digest MD5 grezzo.
+
 Il digest esposto presenta una particolarità non documentata: è rappresentato come numero
 esadecimale privo delle cifre nulle iniziali, e ha quindi lunghezza variabile, mentre il
 digest calcolato localmente ne ha sempre trentadue. Un confronto diretto fra le due stringhe
@@ -675,7 +680,7 @@ fallirebbe quindi ogni volta che il digest del file comincia per zero, pur essen
 integro e correttamente leggibile. Il valore ricevuto viene pertanto riportato alla lunghezza
 standard prima del confronto.
 
-Anche con la normalizzazione, in due occasioni nel corso dello sviluppo il confronto è
+Anche riportando il digest alle cifre originali, in due occasioni nel corso dello sviluppo il confronto è
 fallito su file la cui dimensione coincideva con quella dichiarata e che la libreria di
 accesso ai formati leggeva senza errori: i dati acquisiti erano dunque utilizzabili. Non
 avendo potuto stabilire se la causa risieda nel modo in cui il servizio calcola il digest,

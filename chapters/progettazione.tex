@@ -166,7 +166,7 @@ esposto ai nodi, richiesta da \req{F6}.
 \label{subsec:interpolazione}
 
 Il requisito si traduce nell'introduzione di un'astrazione per la regola e di
-un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}.
+un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}~\cite{gof1994}.
 La \Cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 
 \begin{figure}[h]
@@ -247,7 +247,7 @@ La conversione porta con sé un secondo compito: decidere cosa fare quando il va
 risolto è mancante.
 Una scelta che può essere comune nelle simulazioni è poter convertire i valori mancanti
 in un valore prefissato, ed è ciò di cui si occupa
-\texttt{MissingValueFallbackConverter<T>}, un decoratore che riceve un altro convertitore e un valore di
+\texttt{MissingValueFallbackConverter<T>}, un decoratore~\cite{gof1994} che riceve un altro convertitore e un valore di
 ripiego: intercetta il caso mancante e restituisce il ripiego, inoltrando ogni altro
 valore al convertitore delegato.
 

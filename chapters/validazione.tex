@@ -113,9 +113,11 @@ valori esposti dal layer, nel punto e nell'istante corretti.
 
 \subsection{Scenario e dati}
 
-Lo scenario prende come riferimento l'alluvione che fra il 2 e il 17 maggio 2023
-ha colpito la Romagna, durante la quale il fiume Savio, come altri corsi
-d'acqua del territorio, è straripato a Cesena.
+Lo scenario prende come riferimento gli eventi alluvionali che nel maggio 2023
+hanno colpito la Romagna~\cite{arrighi2024}. I nodi sono collocati sulla rete
+stradale di Cesena, attraversata dal fiume Savio, e la finestra temporale
+presa in considerazione comprende il secondo dei due episodi di precipitazione
+intensa che hanno causato gli eventi.
 
 La scelta del dataset è legata alla scala del fenomeno da rappresentare:
 i nodi vengono collocati sulla rete stradale di Cesena, si richiede quindi che le griglie
@@ -170,7 +172,7 @@ Nell'area selezionata la portata fluviale media varia fra un minimo
 di \qty{0}{\cubic\metre\per\second}
 e un massimo di \qty{47.41}{\cubic\metre\per\second}.
 
-Questi valori sono prodotti da un modello idrologico e
+Questi valori sono prodotti dal modello idrologico LISFLOOD~\cite{lisflood} e
 non misurati sulle posizioni reali, quindi possono sottostimare
 la portata reale effettivamente transitata nel Savio a Cesena
 durante l'evento, dell'ordine delle centinaia di \unit{\cubic\metre\per\second}.

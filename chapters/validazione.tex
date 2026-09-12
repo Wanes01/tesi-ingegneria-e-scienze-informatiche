@@ -113,44 +113,79 @@ valori esposti dal layer, nel punto e nell'instante corretti.
 
 \subsection{Scenario e dati}
 
-Lo scenario riprende l'alluvione che tra il 2 e il 17 maggio 2023 ha colpito la Romagna.
-Durante l'evento il fiume Savio, come altri corsi d'acqua del territorio,
-è straripato. I dati dell'alluvione provengono dal dataset \texttt{efas-historical}
-di \ac{EWDS} nella versione 5.0 del sistema~\cite{JRC134686}, il quale espone i dati
-tramite una griglia latitudine-longitudine regolare, a differenza delle versioni precedenti
-che espongono in proiezione \ac{LAEA}. Questa versione del modello presenta
-una risoluzione di un minuto d'arco in latitudine e longitudine, una misura angolare,
-corrispondente a circa 1.9 km in latitudine e 1.3 km in longitudine sulle coordinate
-di Cesena.
+Lo scenario prende come riferimento l'alluvione che fra il 2 e il 17 maggio 2023
+ha colpito la Romagna, durante la quale il fiume Savio, come altri corsi
+d'acqua del territorio, è straripato a Cesena.
+
+La scelta del dataset è legata alla scala del fenomeno da rappresentare:
+i nodi vengono collocati sulla rete stradale di Cesena, si richiede quindi che le griglie
+che compongono la serie abbiano una risoluzione spaziale tale da non esporre
+a tutti i nodi il medesimo valore. Fra i prodotti distribuiti
+dai data store Copernicus, quelli del sistema \ac{EFAS} presentano una risoluzione
+adeguata alla scala del fenomeno. I dati provengono quindi dal dataset
+\texttt{efas-historical} di \ac{EWDS}, nella versione 5.0 del sistema~\cite{JRC134686},
+che espone i propri campi su una griglia regolare in latitudine e longitudine,
+a differenza delle versioni precedenti che adottano la proiezione \ac{LAEA}.
+
+La risoluzione delle griglie è di un minuto d'arco, misura angolare corrispondente
+a circa \qty{1.9}{\kilo\metre} in latitudine e \qty{1.3}{\kilo\metre} in longitudine
+alle coordinate di Cesena.
+Il riquadro richiesto copre $19 \times 23$ celle per istante, corrispondenti a
+circa \qtyproduct{35 x 31}{\kilo\metre} fra nord-sud ed est-ovest.
+
 La variabile richiesta è la portata fluviale media nelle sei ore precedenti,
-ovvero la quantità media di acqua che attraversa una determinata sezione di
-un fiume nell'unità di tempo (misurata in $\frac{m^{3}}{s}$),
-fornita a intervalli di sei ore. Il \Cref{lst:richiesta-efas} riporta i parametri
-della richiesta al dataset.
+ovvero la quantità media di acqua che attraversa una determinata sezione di un
+fiume nell'unità di tempo, misurata in \unit{\cubic\metre\per\second} e fornita
+a intervalli di sei ore. Ogni valore non è quindi una misura istantanea: è la
+media della portata nelle sei ore
+che precedono l'istante a cui è associato nel file. Il layer lo tratta invece
+come se fosse il valore assunto in quell'istante, e interpola fra un valore e
+il successivo. Ciò comporta che eventuali picchi nella portata vengano nascosti
+dal valore medio. Il \Cref{lst:richiesta-efas} riporta i parametri
+della richiesta.
 
 \lstinputlisting[
     language=json,
     label={lst:richiesta-efas},
-    caption={Richiesta al dataset \texttt{efas-historical} per la simulazione dimostrativa.}
+    caption={[Richiesta al dataset efas-historical]Richiesta al dataset \texttt{efas-historical} per la simulazione dimostrativa.}
 ]{listings/exemplar/alluvione_cesena.json}
 
-In questo dataset i campi \texttt{hmonth} e \texttt{hday} indicano i mesi e
-giorni selezionati. I dati richiesti osservano la portata fluviale dall'inizio di aprile
-fino alla fine di giugno 2023. Vengono richieste tutte le griglie disponibili nell'arco
-della giornata (una ogni sei ore). Il parametro \texttt{model\_levels} viene
-specificato anche se non ha un uso effettivo: altre variabili dello stesso dataset
-possono essere campionate a più livelli, la portata idrica invece solo sulla superficie.
-Il parametro \texttt{area} delimita la zona di studio; in questo caso viene selezionato
-un rettangolo che include l'intera città di Cesena.
+In questo dataset i campi \texttt{hmonth} e \texttt{hday} indicano i mesi e i
+giorni selezionati, e vengono richieste tutte le griglie disponibili nell'arco
+della giornata, una ogni sei ore. Il parametro \texttt{model\_levels} viene
+specificato anche se non ha un uso effettivo: altre variabili dello stesso
+dataset possono essere campionate a più livelli, mentre la portata idrica è
+definita solo sulla superficie. Il parametro \texttt{area} delimita la zona di
+studio, in questo caso un rettangolo che include l'intera città di Cesena.
+L'intervallo richiesto va dall'inizio di aprile fino alla fine di maggio 2023
+e precede quindi di alcune settimane l'origine temporale fissata nella configurazione
+(\Cref{subsec:configurazione-caso-studio}).
+
+La serie risultante conta 244 istanti, ciascuno su 437 celle.
+Tutte le griglie associate ai vari istanti riportano il \qty{96.6}{\percent}
+di valori presenti, con 15 celle costantemente senza valore.
+La densità è tale per cui il modulo utilizzerà la rappresentazione
+densa per tutte le griglie, ovvero \texttt{ArrayRasterGrid}.
+Nell'area selezionata la portata fluviale media varia fra un minimo
+di \qty{0}{\cubic\metre\per\second}
+e un massimo di \qty{47.41}{\cubic\metre\per\second}.
+
+Questi valori sono prodotti da un modello idrologico e
+non misurati sulle posizioni reali, quindi possono sottostimare
+la portata reale effettivamente transitata nel Savio a Cesena
+durante l'evento, dell'ordine delle centinaia di \unit{\cubic\metre\per\second}.
+La simulazione che segue non riproduce quindi l'alluvione nella sua entità
+reale ma solo tramite i valori del modello.
 
 \subsection{Configurazione}
+\label{subsec:configurazione-caso-studio}
 
 Il \Cref{lst:yaml-dimostrativa} riporta la parte della configurazione che
 riguarda il modulo: la dichiarazione del layer nella modalità da data store
 (\Cref{subsec:costruttori-impl}) e la condizione di terminazione.
 
 \lstinputlisting[
-    float,
+    %float,
     language=YAML,
     label={lst:yaml-dimostrativa},
     caption={[Configurazione del layer]Dichiarazione del layer e condizione di terminazione nella simulazione dimostrativa.}
@@ -162,22 +197,22 @@ corrisponde a un'ora reale, e il tempo zero al 25 aprile 2023, ore 00:00 UTC. Il
 valore di \texttt{timeScale} coincide con quello predefinito, ma va indicato
 perché il sistema di caricamento, per assegnare per nome un parametro opzionale, richiede anche
 tutti quelli che lo precedono. Con questa
-scala e origine, facendo terminare la simulazione dopo 1584 unità di
+scala e origine, facendo terminare la simulazione dopo 736 unità di
 tempo simulato, si chiude la riproduzione dell'evento con i dati
-del 30 giugno 2023, ore 00:00 UTC.
+del 25 maggio 2023, ore 16:00 UTC.
 
 L'ambiente è un \texttt{OSMEnvironment} (Sezione~\ref{subsec:alchemist-osm})
-costruito su un estratto OpenStreetMap di Cesena.
+costruito su un estratto OpenStreetMap di Cesena, nella quale sono collocati
+100 nodi.
 Ogni nodo esegue un programma che, una volta per unità di tempo simulato,
 legge il layer nella propria posizione. Il comportamento si riduce a una soglia
 della portata fluviale: una volta superata quest'ultima, il nodo entra in stato di allarme
 e viene portato a spostarsi verso punti di uscita prestabiliti utilizzando il grafo
 stradale.
 
-L'intervallo di valori assunti dai dati è stato identificato analizzando il dataset
-tramite Panoply~\footnote{Panoply, visualizzatore di dati geospaziali della NASA: \url{https://www.giss.nasa.gov/tools/panoply/}.}.
-La portata fluviale descritta dai dati raccolti va da un minimo di 0 a un massimo di 4.6 $\frac{m^{3}}{s}$.
-Si è scelto di usare 3.5 $\frac{m^{3}}{s}$ come soglia di allarme per i nodi.
+La soglia di allerta è stata fissata arbitrariamente a \qty{18}{\cubic\metre\per\second}
+e risponde al solo scopo di produrre una transizione di stato osservabile in un momento
+noto.
 
 \subsection{Esecuzione}
 
@@ -198,16 +233,17 @@ asincrono di sottomissione, attesa e scaricamento descritto nella \Cref{subsec:c
 Una volta recuperati con successo i dati, la simulazione viene avviata.
 La \Cref{fig:caso-studio} mostra l'esecuzione in istanti successivi.
 Il campo colorato di blu è la portata esposta dal layer, resa con un effetto
-grafico realizzato per questa simulazione. Una zona senza colore non indica
-necessariamente una portata fluviale nulla: l'effetto non colora zone
-con una portata inferiore a 2 $\frac{m^{3}}{s}$.
+grafico realizzato per questa simulazione; l'intesità del colore cresce con
+il valore e le zone non colorate sono quelle in cui la portata resta al di sotto
+di \qty{18.5}{\cubic\metre\per\second}, non necessariamente quelle in cui è nulla.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{figures/validazione/alluvione.png}
   \caption[La simulazione dimostrativa in istanti successivi]{La simulazione in
-  tre istanti successivi. Da sinistra: prima degli eventi,
-  durante l'esondazione del fiume Savio, la riduzione della portata.}
+  tre istanti successivi. Da sinistra: prima dell'evento, in corrispondenza del
+  colmo della portata, e dopo il rientro. Nell'ultima immagine sono evidenziate
+  in rosso le posizioni dei nodi che sono stati evacuati.}
   \label{fig:caso-studio}
 \end{figure}
 
@@ -215,12 +251,13 @@ Nelle immagini, in ordine da sinistra verso destra:
 
 \begin{enumerate}
   \item 25 aprile 2023, 00:00 UTC (tempo di simulazione 0): la portata fluviale
-  del fiume Savio rientra nella norma;
-  \item 16 maggio 2023, 15:00 UTC (tempo di simulazione 519): il fiume Savio straripa.
-  I nodi che rilevano nella propria posizione un valore oltre la soglia di allerta
-  si spostano fuori dalla zona;
-  \item 21 maggio 2023, 04:00 UTC (tempo di simulazione 580): la portata fluviale
-  si riduce. I nodi che sono stati allertati rimangono fuori dalla zona.
+  del fiume Savio è quella ordinaria e nessun nodo supera la soglia;
+  \item 17 maggio 2023, 07:00 UTC (tempo di simulazione 535): la portata
+  raggiunge il proprio massimo. I nodi che rilevano nella propria posizione un
+  valore oltre la soglia entrano in allarme e si spostano fuori dalla zona;
+  \item 25 maggio 2023, 16:00 UTC (tempo di simulazione 736): la portata
+  rientra sotto la soglia. I nodi già allertati restano fuori dalla zona,
+  poiché il programma che eseguono non prevede il rientro.
 \end{enumerate}
 
 Riavviando la simulazione con la stessa configurazione, il gestore della cache

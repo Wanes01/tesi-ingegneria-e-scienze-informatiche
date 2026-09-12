@@ -12,5 +12,5 @@ layers:
 
 terminate:
   type: AfterTime
-  parameters: [1584]
+  parameters: [736]
 # ...

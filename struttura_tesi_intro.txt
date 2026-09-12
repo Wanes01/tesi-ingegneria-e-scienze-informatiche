@@ -25,3 +25,12 @@ simulatore, la rappresentazione dei dati, le strategie di risoluzione, il layer 
 il sottosistema di acquisizione. Non viene riportato il codice per intero, ma i soli
 punti in cui la realizzazione ha richiesto decisioni non deducibili dalla progettazione,
 o in cui il comportamento osservato dei servizi si è discostato da quanto documentato.
+
+### VALIDAZIONE
+Questo capitolo raccoglie le evidenze del fatto che il modulo soddisfi i
+requisiti della Sezione~\ref{sec:requisiti}. Esse sono di tre tipi, in ordine di
+crescente vicinanza all'uso reale: i test automatici, eseguiti a ogni modifica e
+isolati dalla rete (Sezione~\ref{sec:test-automatici}); le verifiche condotte su
+ciò che un test isolato non può raggiungere (Sezione~\ref{sec:verifiche-manuali});
+un caso di studio che esercita l'intera catena, dalla richiesta al data store
+fino ai nodi della simulazione (Sezione~\ref{sec:caso-di-studio}).

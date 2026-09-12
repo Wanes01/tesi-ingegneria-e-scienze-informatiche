@@ -1,0 +1,16 @@
+# ...
+layers:
+  - type: DoubleCopernicusLayer
+    molecule: dis06
+    parameters:
+      endpoint: "https://ewds.climate.copernicus.eu/api"
+      dataset: "efas-historical"
+      inputsFile: "/home/user/.alchemist/json/cesena_flood.json"
+      checkMd5: true
+      timeScale: "PT1H"
+      timeOrigin: "2023-04-25T00:00:00Z"
+
+terminate:
+  type: AfterTime
+  parameters: [1584]
+# ...

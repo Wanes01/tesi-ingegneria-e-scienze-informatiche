@@ -1,0 +1,115 @@
+# ---------------------------------------------------------------------------
+# Exemplar: alluvione di maggio 2023 a Cesena (EFAS historical v5.0)
+#
+# Ogni residente legge periodicamente il layer (portata media nelle 6 ore
+# precedenti) nella propria posizione. Al primo superamento della soglia entra
+# in allarme, in modo irreversibile, sceglie fra le uscite dall'area quella
+# piu' vicina a piedi (distanza lungo la rete stradale, GraphHopper) e la
+# raggiunge. La scelta avviene una sola volta, al momento dell'allarme.
+#
+# CONVENZIONE TEMPORALE: 1 unita' di tempo simulato = 1 ora reale (PT1H).
+# Tempo 0 = 2023-04-25T00:00Z, quindi t ore simulate = 25 aprile + t ore.
+#   prima ondata   2-3 maggio   -> t ~ 168-216
+#   seconda ondata 16-18 maggio -> t ~ 504-576
+#   fine           22 maggio    -> t = 648
+# ---------------------------------------------------------------------------
+
+incarnation: protelis
+
+environment:
+  type: OSMEnvironment
+  # (file, onStreets, onlyOnStreets). Estratto ritagliato con
+  # 'osmium extract --strategy simple' sul riquadro nominale BBBike, che sta
+  # dentro il dominio del layer con piu' di una cella di margine.
+  parameters: ["/home/wanes/Desktop/university/tesi/tesi-ingegneria-e-scienze-informatiche/listings/exemplar/cesena-crop.pbf", true, true]
+
+monitors:
+  type: SwingGUI
+
+launcher:
+  type: DefaultLauncher
+  parameters:
+    autoStart: false
+
+layers:
+  - type: DoubleCopernicusLayer
+    molecule: dis06
+    parameters:
+      endpoint: "https://ewds.climate.copernicus.eu/api"
+      dataset: "efas-historical"
+      inputsFile: "/home/wanes/Desktop/university/tesi/tesi-ingegneria-e-scienze-informatiche/listings/exemplar/alluvione_cesena.json"
+      checkMd5: true
+      timeScale: "PT1H"
+      timeOrigin: "2023-04-25T00:00:00Z"
+
+_behavior: &behavior
+  # 1) Lettura del layer e decisione, una volta per ora simulata.
+  #    - 'alarmed' resta vero dal primo superamento della soglia (rep).
+  #    - Al primo round in allarme, e solo allora (!env.has("target")), il nodo
+  #      calcola la distanza stradale verso ogni uscita e sceglie la minima:
+  #      le tuple [distanza, uscita] si confrontano sul primo elemento.
+  #    - routingDistance usa GraphHopper con il profilo di default (foot),
+  #      lo stesso di TargetMapWalker. Un'uscita non raggiungibile a piedi
+  #      fa fallire il routing con IllegalArgumentException.
+  #    - In Protelis 'e' ed 'E' sono parole riservate (servono per la notazione
+  #      scientifica dei numeri): non usarle come nomi di variabili o parametri.
+  - time-distribution: 1
+    program: >
+      let level = env.get("dis06");
+      let alarmed = rep (a <- false) { a || (level > env.get("threshold")) };
+      if (alarmed && !env.has("target")) {
+        env.put("target",
+          env.get("exits").map(self, (x) -> { [self.routingDistance(x), x] }).min([]).get(1))
+      } else { false };
+      env.put("level", level);
+      env.put("alarmed", alarmed);
+      alarmed
+  # Senza network-model non ci sono vicini: 'send' evita solo l'avviso di
+  # ProtelisDevice sull'azione di invio mancante.
+  - program: send
+  # 2) Movimento sulla rete stradale verso 'target'. Senza 'target' il nodo
+  #    resta fermo. 1.4 m/s * 3600 s = 5040 m per ora simulata;
+  #    frequenza 60 = un passo al minuto.
+  - time-distribution: 60
+    type: Event
+    actions:
+      - type: TargetMapWalker
+        parameters: [target, 5040.0]
+
+deployments:
+  # Circle: [nodi, latitudine, longitudine, raggio IN GRADI].
+  - type: Circle
+    parameters: [100, 44.1391, 12.2431, 0.04]
+    contents:
+      # Uscite dall'area, [latitudine, longitudine]. TUTTE PLACEHOLDER:
+      # scegli punti su strade principali in uscita dalla citta', dentro
+      # l'estratto, fuori dal cerchio dei nodi, in zone a valore basso
+      # (controlla sulla heatmap: evita la fascia del Savio).
+      - molecule: exits
+        concentration: "[[44.1600, 12.1500], [44.1200, 12.3100], [44.0800, 12.2600], [44.2000, 12.2700]]"
+      - molecule: threshold
+        concentration: 3.5
+      # SMOKE TEST del solo movimento: decommenta e metti a turno ciascuna
+      # uscita, per verificare che sia raggiungibile a piedi.
+      #- molecule: target
+      #  concentration: "[44.1600, 12.1500]"
+    programs: *behavior
+
+terminate:
+  type: AfterTime
+  parameters: [648]   # dal 25 aprile 00:00Z al 22 maggio 00:00Z (27 giorni)
+
+export:
+  - type: CSVExporter
+    parameters:
+      fileNameRoot: "cesena-2023-efas"
+      interval: 1.0
+      exportPath: "/home/wanes/Desktop/university/tesi/exemplar-export"
+    data:
+      - time
+      - molecule: alarmed                   # booleano esportato come 1/0
+        aggregators: [sum]                  # = numero di residenti in evacuazione
+        value-filter: onlyfinite
+      - molecule: level
+        aggregators: [mean, max]
+        value-filter: onlyfinite

@@ -173,7 +173,7 @@ dimensioni.
 % criterio che esclude automaticamente le variabili che espongono gli assi, essendo
 %queste monodimensionali.
 Nel rispetto di \req{NF5}, ogni errore è informativo: nel caso in
-cui la variabile specifica sia assente, viene allertato il modellista delle variabili
+cui la variabile specifica sia assente viene allertato il modellista delle variabili
 disponibili; allo stesso modo, viene reso esplicito se non ci sono variabili descritte dalle
 dimensioni aspettate o se ne vengono trovate multiple.
 Il \Cref{lst:resolve-variable} riporta i due criteri.
@@ -255,8 +255,8 @@ Il \Cref{lst:axes-search} riporta la prima delle tre.
 
 Nessuna di queste funzioni verifica che l'asse ricevuto sia strettamente crescente. 
 Il controllo non viene effettuato poiché sarebbe ridondante visto che la monotonia
-degli assi spaziali è garantita dalla costruzione delle griglie; la monotonia dell'
-asse temporale è garantita invece dalla costruzione della serie di griglie. Inoltre,
+degli assi spaziali è garantita dalla costruzione delle griglie; la monotonia dell'asse
+temporale è garantita invece dalla costruzione della serie di griglie. Inoltre,
 tale controllo porterebbe a costo lineare un'operazione altrimenti logaritmica.
 
 \subsection{Uguaglianza fra le strategie}
@@ -520,14 +520,14 @@ Il \Cref{lst:canonical-json} riporta la codifica.
 
 La terna formata dal data store, dal dataset e dalla selezione normalizzata dei parametri
 viene quindi data come argomento alla funzione di hash SHA-256~\cite{sha256}, del cui digest
-si conservano le prime sedici cifre esadecimali. Il nome della cartella in cache è composto
+si conservano le prime 16 cifre esadecimali. Il nome della cartella in cache è composto
 dal nome del dataset, nel quale ogni carattere non ammesso dai file system è sostituito da
 un trattino basso, seguito da tali cifre.
 
 Il nome è un compromesso fra leggibilità e probabilità di collisione: la parte derivata dal
 dataset consente a chi conduce la simulazione di riconoscere la cartella ispezionando la
 cache, mentre le cifre del digest ne stabiliscono l'identità. La lunghezza scelta corrisponde
-a sessantaquattro bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
+a 64 bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
 trascurabile. Il \Cref{lst:coper-req} riporta la derivazione del nome.
 
 \lstinputlisting[

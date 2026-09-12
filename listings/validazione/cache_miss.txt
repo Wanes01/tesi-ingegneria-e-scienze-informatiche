@@ -1,0 +1,11 @@
+Cache miss for 'efas-historical_ce560f204abc17e6': fetching data
+Fetching dataset 'efas-historical'.
+Job submitted for 'efas-historical', monitoring at https://ewds.climate.copernicus.eu/api/retrieve/v1/jobs/0369b19e-3170-4566-8935-c3c4cace91bf
+Still waiting for job at .../jobs/0369b19e-3170-4566-8935-c3c4cace91bf (status: running)
+Still waiting for job at .../jobs/0369b19e-3170-4566-8935-c3c4cace91bf (status: running)
+Job completed at .../jobs/0369b19e-3170-4566-8935-c3c4cace91bf
+Asset(s) will be downloaded from: https://.../44ab171e1ebc5d9e1a5375570dac637.zip (238790 bytes)
+Downloading 44ab171e1ebc5d9e1a5375570dac637.zip...
+Downloaded 44ab171e1ebc5d9e1a5375570dac637.zip
+Dataset 'efas-historical' successfully downloaded in 2m 9.417s.
+Asset(s) cached in /home/user/.alchemist/cache/geospatial/efas-historical_ce560f204abc17e6

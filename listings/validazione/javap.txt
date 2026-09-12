@@ -1,0 +1,6 @@
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String, String, String, String, SpatioTemporalInterpolation, MeasurementConverter<Double>);
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String, String, String, String, SpatioTemporalInterpolation);
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String, String, String, String);
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String, String, String);
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String, String);
+  public DoubleCopernicusLayer(Environment<?, GeoPosition>, String);

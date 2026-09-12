@@ -5,7 +5,7 @@ layers:
       endpoint: "https://cds.climate.copernicus.eu/api"
       dataset: "derived-era5-single-levels-daily-statistics"
       inputsFile: "/home/user/.alchemist/json/2mt.json"
-      checkMd5: false
+      checkMd5: true
       timeScale: "PT1H"
       timeOrigin: null
       variable: null

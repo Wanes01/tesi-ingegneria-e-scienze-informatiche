@@ -69,7 +69,7 @@ dalla disponibilità dei data store, è soddisfatto a livelli differenti:
 \label{sec:verifiche-manuali}
 
 La compatibilità con il caricamento (\req{F11}) è la parte del modulo più
-condizionata da vincoli esterni (\Cref{subsec:costruttori-impl}), e non è
+condizionata da vincoli esterni (\Cref{subsec:costruttori-impl}) e non è
 verificata dai test automatici, i quali costruiscono il layer direttamente.
 La verifica è avvenuta in due modi distinti. Il primo è tramite il bytecode:
 l'ispezione con \texttt{javap} della classe compilata conferma che 
@@ -109,7 +109,7 @@ un'esecuzione successiva. La simulazione è a scopo solamente dimostrativo
 rispetto al modulo: il comportamento dei nodi è volutamente elementare
 e non intende modellare un atteggiamento verosimile.
 Ciò che si vuole verificare non è cosa facciano i nodi, ma che reagiscano ai
-valori esposti dal layer, nel punto e nell'instante corretti.
+valori esposti dal layer, nel punto e nell'istante corretti.
 
 \subsection{Scenario e dati}
 
@@ -123,7 +123,7 @@ che compongono la serie abbiano una risoluzione spaziale tale da non esporre
 a tutti i nodi il medesimo valore. Fra i prodotti distribuiti
 dai data store Copernicus, quelli del sistema \ac{EFAS} presentano una risoluzione
 adeguata alla scala del fenomeno. I dati provengono quindi dal dataset
-\texttt{efas-historical} di \ac{EWDS}, nella versione 5.0 del sistema~\cite{JRC134686},
+\texttt{efas-historical} di \ac{EWDS}, nella versione 5.0 del sistema~\cite{efasv5},
 che espone i propri campi su una griglia regolare in latitudine e longitudine,
 a differenza delle versioni precedenti che adottano la proiezione \ac{LAEA}.
 
@@ -233,7 +233,7 @@ asincrono di sottomissione, attesa e scaricamento descritto nella \Cref{subsec:c
 Una volta recuperati con successo i dati, la simulazione viene avviata.
 La \Cref{fig:caso-studio} mostra l'esecuzione in istanti successivi.
 Il campo colorato di blu è la portata esposta dal layer, resa con un effetto
-grafico realizzato per questa simulazione; l'intesità del colore cresce con
+grafico realizzato per questa simulazione; l'intensità del colore cresce con
 il valore e le zone non colorate sono quelle in cui la portata resta al di sotto
 di \qty{18.5}{\cubic\metre\per\second}, non necessariamente quelle in cui è nulla.
 
@@ -273,7 +273,7 @@ trova la voce e il layer viene costruito senza alcuna richiesta di rete
     caption={[Log della seconda esecuzione.]{Messaggio del modulo alla seconda esecuzione con la stessa configurazione. Prefisso del logger omesso.}}
 ]{listings/validazione/cache_hit.txt}
 
-La chiave della voce è derivata dall'endpoint, dal dataset e dal contenuto della
+La chiave della voce di cache è derivata dall'endpoint, dal dataset e dal contenuto della
 richiesta. I parametri che non ne fanno parte, come l'origine temporale o la
 strategia di interpolazione, possono quindi cambiare fra un'esecuzione e l'altra
 senza provocare un nuovo scaricamento.

@@ -173,8 +173,9 @@ dimensioni.
 % criterio che esclude automaticamente le variabili che espongono gli assi, essendo
 %queste monodimensionali.
 Nel rispetto di \req{NF5}, ogni errore è informativo: nel caso in
-cui la variabile specifica sia assente viene allertato il modellista delle variabili
-disponibili; allo stesso modo, viene reso esplicito se non ci sono variabili descritte dalle
+cui la variabile specificata sia assente, le variabili disponibili vengono
+comunicate al modellista; allo stesso modo, viene reso esplicito se
+non ci sono variabili descritte dalle
 dimensioni aspettate o se ne vengono trovate multiple.
 Il \Cref{lst:resolve-variable} riporta i due criteri.
 
@@ -272,7 +273,7 @@ Ad esempio, la classe \texttt{TrilinearInterpolation}, mostrata nel \Cref{lst:tr
 ]{listings/implementazione/TrilinearInterpolation.kt}
 
 Questa classe padre esiste per soddisfare un vincolo del meccanismo di caricamento.
-Il caricatore, quando incontra un parametro dichiarato a sua volta con una classe e i
+Il caricatore quando incontra un parametro dichiarato a sua volta con una classe e i
 propri parametri riceve la specifica YAML su come costruirlo.
 Per tradurla deve sapere di quale tipo debba essere l'oggetto, e questo dipende
 da quale costruttore del layer verrà invocato. Il

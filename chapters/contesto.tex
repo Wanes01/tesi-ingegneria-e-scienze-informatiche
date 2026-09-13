@@ -303,15 +303,6 @@ Un aspetto comune ai due formati riguarda la rappresentazione dei valori mancant
 dataset forniti dai data store non è un caso raro: le misure della temperatura a due metri dal suolo,
 ad esempio, sono definite solo in corrispondenza di tratti terreni, e lasciano prive di valore
 tutte le celle in corrispondenza di acqua.
-%In un file \ac{NetCDF} conforme alle convenzioni \ac{CF}
-%l'assenza di un valore è segnalata dall'attributo \texttt{\_FillValue} o \texttt{missing\_value}:
-%un valore riservato, che le librerie di lettura riconoscono come indicatore di dato mancante.~\cref{fig:netcdf-structure}
-
-%In un file \ac{GRIB} lo stesso ruolo è svolto da una sezione dedicata,
-%la \emph{bitmap section}, che indica punto per punto della griglia se il valore
-%corrispondente sia presente. Il modo in cui queste due rappresentazioni vengono
-%ricondotte a un'unica convenzione interna è
-%discusso nel Capitolo~\ref{chap:implementazione}.
 
 Un secondo aspetto, comune a entrambi i formati, riguarda la nozione di
 \emph{griglia raster}. Nella sua forma più diffusa, una griglia raster è

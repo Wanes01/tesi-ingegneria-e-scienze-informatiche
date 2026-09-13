@@ -301,37 +301,6 @@ Per le stesse ragioni, il progetto non introduce un'interfaccia dedicata che agg
 concetto di layer temporale: un layer per dati Copernicus è un'implementazione di
 \texttt{Layer<T, GeoPosition>} come un'altra, e non un tipo concettualmente distinto.
 
-\iffalse
-\subsection{La corrispondenza temporale}
-\label{subsec:layer-corrispondenza}
-
-Letto il tempo di simulazione corrente, il layer deve stabilire a quale istante del mondo
-reale esso corrisponda. La Sezione~\ref{subsec:corrispondenza-temporale} ha stabilito che
-tale corrispondenza vada confinata nel solo componente che ne ha bisogno, ed è quindi il
-layer a ospitarla.
-
-La corrispondenza è definita da due soli parametri: un'\emph{origine}, l'istante reale a
-cui corrisponde lo zero del tempo di simulazione, e una \emph{scala}, la durata reale
-rappresentata da un'unità di tempo simulato. Fissati questi due valori, ogni istante di
-simulazione individua un istante reale e viceversa. Entrambi sono dichiarati da chi
-configura la simulazione, come \req{F3} richiede, e restano costanti per l'intera
-esecuzione.
-
-L'origine ammette un valore predefinito, ovvero il primo istante coperto dalla
-serie, che corrisponde al caso più frequente di una simulazione che inizia
-con i dati di cui dispone.
-
-La corrispondenza è stabilita una sola volta, al momento della costruzione del layer, e non
-è nota ad alcun'altra parte del simulatore, che continua a operare su un tempo scalare. Ne
-consegue che le modifiche richieste da un'eventuale futura migrazione del tipo di tempo di
-Alchemist resterebbero circoscritte a un unico punto del modulo.
-
-Ottenuto l'istante reale, resta il caso in cui esso ricada al di fuori dell'intervallo
-coperto dalla serie, che la Sezione~\ref{subsec:estensione-spaziale} ha stabilito non
-costituire un errore di modellazione. Il layer estrapola a valore costante: se l'istante
-precede il primo disponibile viene considerato quest'ultimo, e analogamente, se supera
-l'ultimo, viene considerato l'ultimo istante presente nei dati.
-\fi
 \subsection{La corrispondenza temporale}
 \label{sec:corrispondenza-temporale}
 

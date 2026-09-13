@@ -170,8 +170,6 @@ Quando l'archivio contiene una sola variabile definita sulle tre dimensioni di i
 indicarne il nome sarebbe una ridondanza. Il parametro è per questo facoltativo: se non
 specificato, la variabile viene individuata fra quelle definite esattamente su quelle tre
 dimensioni.
-% criterio che esclude automaticamente le variabili che espongono gli assi, essendo
-%queste monodimensionali.
 Nel rispetto di \req{NF5}, ogni errore è informativo: nel caso in
 cui la variabile specificata sia assente, le variabili disponibili vengono
 comunicate al modellista; allo stesso modo, viene reso esplicito se
@@ -509,7 +507,7 @@ la codifica adottata compie pertanto una sola normalizzazione: riordina
 ricorsivamente le chiavi di ogni mappa. L'ordine delle liste è invece preservato, poiché
 nelle richieste ai data store queste sono semantiche, come nel caso di un elenco di date o
 di livelli.
-%\iffalse
+
 Il \Cref{lst:canonical-json} riporta la codifica.
 
 \lstinputlisting[
@@ -517,7 +515,6 @@ Il \Cref{lst:canonical-json} riporta la codifica.
     label={lst:canonical-json},
     caption={Ordinamento della selezione dei parametri.}
 ]{listings/implementazione/CanonicalJson.kt}
-%\fi
 
 La terna formata dal data store, dal dataset e dalla selezione normalizzata dei parametri
 viene quindi data come argomento alla funzione di hash SHA-256~\cite{sha256}, del cui digest

@@ -51,15 +51,6 @@ Questi aspetti individuano i seguenti sotto-problemi:
     simulazione.
 \end{enumerate}
 
-\iffalse
-I tre sotto-problemi sono debolmente accoppiati fra loro: la rappresentazione di una serie
-di griglie è indipendente dalla loro provenienza, la risoluzione di un valore lo è dal modo
-in cui le griglie sono state ottenute, e l'acquisizione lo è dal modo in cui i dati
-acquisiti verranno successivamente letti. L'unico punto di contatto è la forma in cui i
-dati vengono consegnati, ovvero un insieme di file in uno dei formati descritti nella
-Sezione~\ref{sec:formati-raster}.
-\fi
-
 \section{Obiettivi}
 \label{sec:obiettivi}
 
@@ -91,14 +82,6 @@ un sotto-obiettivo:
     conservandoli localmente in modo che esecuzioni successive che utilizzano gli stessi
     dati possano riutilizzarli.
 \end{enumerate}
-
-\iffalse
-A questi si affianca un quesito preliminare. La proposta iniziale del lavoro ipotizzava che
-l'interfaccia dei layer di Alchemist (Sezione~\ref{subsec:alchemist-layer}) dovesse essere
-rivista per accogliere dati provenienti da fonti esterne. Stabilire se e in che misura ciò
-sia necessario è parte dell'analisi, e ne condiziona il perimetro: la
-Sezione~\ref{subsec:api-sufficiente} vi risponde una volta delimitati i requisiti.
-\fi
 
 Il risultato atteso è quindi un nuovo modulo del simulatore che aggiunga quanto descritto,
 i cui componenti siano dichiarabili direttamente nella configurazione di una simulazione.
@@ -302,14 +285,6 @@ dei nodi e i percorsi lungo i quali essi si muovono ricadono su chi configura
 la simulazione. Una posizione esterna è quindi data da un'incoerenza fra i
 dati richiesti e l'ambiente simulato.
 
-\iffalse
-Sul dominio temporale la situazione è diversa. Il tempo di simulazione può avanzare
-indefinitamente a partire dallo zero. Rifiutare la richiesta, come sul dominio
-spaziale, significherebbe interrompere una simulazione altrimenti valida. Il layer resta
-quindi definito sull'intero asse temporale, e la regola con cui produce un valore al di
-fuori dell'intervallo coperto è discussa nel Capitolo~\ref{chap:progettazione}.
-\fi
-
 Sul dominio temporale la situazione è diversa. Il tempo di una simulazione avanza
 indefinitamente a partire dallo zero, e il momento in cui essa termina non è
 necessariamente noto a chi la configura. Alchemist consente di dichiarare condizioni
@@ -397,17 +372,6 @@ tempo di simulazione corrente. Il secondo richiederebbe invece un layer mutabile
 l'esecuzione, il quale è a sua volta subordinato a una revisione del motore reattivo di
 Alchemist non ancora disponibile.
 
-\iffalse
-Di conseguenza la serie di dati esposta dal layer è fissata al momento della costruzione
-e non muta per l'intera durata della simulazione. Con questa delimitazione, e una volta
-separate la lettura dei dati, la regola di combinazione dei campioni e la loro
-acquisizione, l'interfaccia esistente si è rivelata adeguata così com'è.
-
-Ne consegue che \req{NF1} è soddisfacibile: il lavoro qui descritto è puramente additivo
-rispetto al simulatore, e si realizza come un nuovo modulo che implementa un'interfaccia
-esistente, senza richiedere modifiche al motore né alle astrazioni del suo modello.
-\fi
-
 Con questa delimitazione, e una volta separate la lettura dei dati, la regola
 di combinazione dei campioni e la loro acquisizione, l'interfaccia esistente si è
 rivelata adeguata così com'è. Di conseguenza \req{NF1} è rispettabile: il lavoro qui descritto
@@ -480,13 +444,6 @@ successive la risoluzione di un valore, le ultime tre l'acquisizione. Ogni requi
 funzionale è coperto da almeno un'entità, a eccezione di \req{F11}, che non riguarda le
 entità del dominio bensì il modo in cui esse vengono rese dichiarabili nella
 configurazione di una simulazione.
-
-\iffalse
-Le uniche relazioni che attraversano i confini fra un gruppo e l'altro sono due: quella
-fra il layer e la serie di griglie che espone, e quella fra il layer e il gestore della
-cache dal quale ottiene i dati da cui la serie viene costruita. Nessuna entità dell'area di
-acquisizione compare fra quelle di cui il layer ha bisogno per restituire un valore, coerentemente con \req{NF8}.
-\fi
 
 Le relazioni che attraversano i confini fra un gruppo e l'altro sono tre: quella fra
 il layer e la serie di griglie che espone, quella fra la regola di risoluzione e le griglie

@@ -1,0 +1,135 @@
+\chapter{Conclusioni}
+\label{chap:conclusioni}
+
+\section{Il lavoro svolto}
+\label{sec:riepilogo}
+
+L'obiettivo del lavoro era riuscire a dotare Alchemist della capacità
+di esporre ai nodi di una simulazione grandezze geospaziali misurate,
+in funzione della posizione in cui essi si trovano e dell'istante di
+simulazione in cui le richiedono, ottenendole dai data store Copernicus.
+Il risultato ottenuto è un nuovo modulo del simulatore, organizzato
+nei quattro sottomoduli descritti nel \Cref{chap:progettazione} e
+dichiarabile interamente nella configurazione della simulazione.
+
+Il sotto-obiettivo di rappresentazione è stato soddisfatto da \texttt{RasterGrid}
+e \texttt{GridSnapshots}, che descrivono rispettivamente una griglia di campioni
+e una successione di griglie omogenee, indipendenti dal formato e dalla fonte
+da cui tali dati provengono. Queste astrazioni portano con sé l'estensione
+spaziale e temporale nelle quali la grandezza di riferimento è nota, e trattano
+in modo esplicito le celle prive di misura (\req{F7}); delle griglie sono fornite
+una realizzazione densa e una sparsa, scelte dinamicamente durante la costruzione
+della serie in funzione della densità delle singole griglie.
+
+Il sotto-obiettivo di risoluzione è stato soddisfatto dal layer e dalle strategie
+a cui esso delega. Il layer stabilisce alla costruzione la corrispondenza fra
+il tempo di simulazione e gli istanti del mondo reale, dichiarata da chi
+configura la simulazione anziché fissata dal modulo (\req{F3}),
+trova i campioni pertinenti all'istante in cui viene interrogato e incarica
+la produzione del valore a una strategia di interpolazione e a un convertitore,
+entrambi intercambiabili e dichiarabili dalla configurazione (\req{F5}, \req{F6}, \req{F11}).
+
+Il sotto-obiettivo di acquisizione è stato soddisfatto dal sottosistema
+costituito da \texttt{CacheKey}, \texttt{ExternalDataProvider} e \texttt{CacheManager},
+e dalle loro realizzazioni che dialogano con i tre data store Copernicus.
+L'identità stessa di una richiesta ne decide deterministicamente la voce
+di cache (\req{NF4}), cosa che rende possibile riusare dati già acquisiti
+senza alcuna richiesta di rete (\req{F10}); tutta l'acquisizione avviene
+al caricamento della simulazione, in modo tale che ogni condizione che
+impedisca di disporre dei dati si manifesti prima che l'esecuzione cominci (\req{NF6}).
+Un risultato aggiuntivo riguarda il protocollo dei data store Copernicus:
+il loro comportamento aderisce solo in parte a \ac{OGC} API
+Processes, e gli scostamenti riscontrati, discussi nel \Cref{chap:implementazione},
+non sono documentati dal servizio: sono stati verificati empiricamente, a partire
+dalle risposte reali raccolte dallo sviluppo, e la loro descrizione
+resta valida anche per altri scenari d'utilizzo.
+
+Il lavoro descritto ha potuto realizzarsi come aggiunta
+al simulatore, senza modifiche alle
+astrazioni del suo modello (\req{NF1}).
+
+La validazione copre tutte e tre le parti: una suite di test
+che non dipende dai data store né dal possesso di credenziali (\req{NF3}),
+la verifica del caricamento da configurazione, l'uso del client sui data
+store reali, una simulazione dimostrativa per confermare il corretto comportamento
+del sistema di cache e la corretta lettura ed esposizione dei valori.
+
+\section{I limiti della soluzione}
+\label{sec:limiti}
+
+Il modulo opera entro alcune ipotesi e alcune scelte prese.
+
+\begin{itemize}
+  \item \textbf{La forma della griglia}: l'ipotesi stabilita nella
+  \Cref{subsec:griglie-supportate} esclude dataset campionati su griglia
+  nativa in proiezione cartografica. Tali dati restano utilizzabili solo se
+  ricondotti esternamente a una griglia di assi indipendenti e caricati poi
+  tramite il secondo costruttore del layer.
+
+  \item \textbf{Le dimensioni del dato}: la grandezza esposta deve
+  dipendere dalle sole tre dimensioni tempo, latitudine e longitudine. I dataset
+  che sono definiti anche su altre dimensioni, come quota o livello di pressione,
+  non possono individuare un valore unico per una posizione e un instante, e restano
+  quindi fuori dal campo di applicabilità.
+
+  \item \textbf{L'occupazione di memoria}: la realizzazione fornita della serie
+  di griglie costruisce l'intera successione in memoria al caricamento,
+  scelta che risponde a \req{NF7} ma il cui costo cresce con l'estensione temporale
+  e geografica della richiesta.
+
+  \item \textbf{La sola lettura}: il valore esposto cambia soltanto perché il
+  tempo di simulazione avanza lungo una serie di griglie già disponibile. Il dato
+  sottostante non può quindi essere aggiornato durante l'esecuzione.
+  Resta quindi fuori portata ogni
+  scenario in cui l'ambiente conserva l'effetto di ciò che i nodi hanno fatto,
+  ad esempio una simulazione in cui dei depuratori riducono la concentrazione
+  degli inquinanti nella zona in cui operano.
+
+  \item \textbf{La conoscenza preventiva del nome della variabile}: quando i file
+  contengono più di una grandezza, la configurazione deve indicare quale far esporre
+  al layer, e il nome da indicare è quello interno al file, che non coincide
+  con quello utilizzato per fare la richiesta verso il data store.
+  Nella modalità che acquisisce i dati da un data store tale nome è noto prima
+  che l'acquisizione sia avvenuta: chi conduce la simulazione deve eseguirla una
+  prima volta, o ispezionare i file ottenuti, per apprenderlo. Il caso è più marcato
+  con i file GRIB, nei quali la grandezza è identificata da codici numerici e il
+  nome esposto dipende dalle tabelle che la libreria di lettura possiede
+  (\Cref{sec:formati-raster}).
+\end{itemize}
+
+\section{Sviluppi futuri}
+\label{sec:sviluppi-futuri}
+
+La struttura del modulo rende possibile alcune direzioni di sviluppo future senza
+modificarne le parti già esistenti.
+
+La prima è il superamento della restrizione sulla forma della griglia.
+Rappresentare dataset in proiezione cartografica richiede di invertire la proiezione
+fra il sistema di riferimento del dataset e quello geografico, in modo da poter
+individuare la cella contenente una determinata posizione; ciò si traduce
+in una nuova realizzazione di \texttt{RasterGrid}, che il resto del modulo
+può usare tramite la stessa astrazione.
+
+La seconda riguarda le fonti di dati. Il sottosistema di acquisizione
+conosce i data store Copernicus solo nelle realizzazioni che ne descrivono
+una richiesta e li interrogano: utilizzare una fonte diversa richiede unicamente
+di implementare la coppia \texttt{CacheKey} ed \texttt{ExternalDataProvider}
+corrispondente. Il caso più immediato è il recupero autonomo da parte del simulatore
+degli estratti cartografici utili ad alimentare un \texttt{OSMEnvironment}, che oggi
+devono essere predisposti manualmente.
+
+Una terza direzione è una realizzazione della serie di griglie che carichi
+i dati su richiesta invece che per intero all'avvio della simulazione,
+con un compromesso tra occupazione di memoria e costo di lettura.
+Il layer non richiederebbe alcuna modifica poiché basterebbe dare una nuova
+implementazione di \texttt{GridSnapshots}.
+
+Le ultime due dipendono invece da interventi sul simulatore.
+Una revisione del motore di simulazione renderebbe possibile l'impiego
+di layer aggiornabili durante l'esecuzione. Una migrazione del tipo di tempo
+di Alchemist (della quale la \Cref{subsec:corrispondenza-temporale} riporta lo studio di fattibilità),
+o un sistema di conversione generica dal tempo di simulazione
+a una rappresentazione arbitraria del tempo, semplificherebbe la corrispondenza
+fra i due domini temporali incontrati nel lavoro svolto; poiché tale 
+corrispondenza è stabilita unicamente nel layer, l'impatto di eventuali
+modifiche sul dominio temporale resterebbero circoscritte a esso.

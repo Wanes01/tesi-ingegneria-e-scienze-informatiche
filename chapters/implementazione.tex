@@ -94,7 +94,7 @@ non appena il file è aperto (\Cref{lst:sax-parser}).
 \lstinputlisting[
     language=Kotlin,
     label={lst:sax-parser},
-    caption={Apertura di un file con ripristino della fabbrica di parser preesistente.}
+    caption={[Gestione del parser per i file GRIB]Apertura di un file con ripristino della fabbrica di parser preesistente.}
 ]{listings/implementazione/sax-parser.kt}
 
 \subsection{L'individuazione e la normalizzazione degli assi}
@@ -117,7 +117,7 @@ Il \Cref{lst:lettura-assi} riporta l'individuazione dei tre assi.
 \lstinputlisting[
     language=Kotlin,
     label={lst:lettura-assi},
-    caption={Individuazione degli assi a partire dal tipo dichiarato nel CDM.}
+    caption={[Individuazione degli assi spaziali e temporali]Individuazione degli assi a partire dal tipo dichiarato nel CDM.}
 ]{listings/implementazione/readFileAxesAssi.kt}
 
 Lo schema di un file non è però fissato a priori, in due sensi distinti. Il primo è l'ordine
@@ -152,7 +152,7 @@ Il \Cref{lst:permutazione} riporta le due operazioni.
 \lstinputlisting[
     language=Kotlin,
     label={lst:permutazione},
-    caption={Lettura di una porzione e suo appiattimento in ordine crescente.}
+    caption={[Lettura di una variabile da un file geospaziale]Lettura di una porzione e suo appiattimento in ordine crescente.}
 ]{listings/implementazione/gridReading.kt}
 
 \subsection{La selezione della variabile}
@@ -727,5 +727,5 @@ Il \Cref{lst:problem-detail} riporta la ricostruzione della causa.
 \lstinputlisting[
     language=Kotlin,
     label={lst:problem-detail},
-    caption={Ricostruzione della causa di un fallimento dal corpo della risposta.}
+    caption={[Ricostruzione del fallimento di una richiesta]Ricostruzione della causa di un fallimento dal corpo della risposta.}
 ]{listings/implementazione/ProblemDetail.kt}

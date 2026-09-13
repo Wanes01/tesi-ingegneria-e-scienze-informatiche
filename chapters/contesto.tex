@@ -82,7 +82,7 @@ valore di tipo \texttt{T}. Il \Cref{lst:layer-interface} ne mostra l'interfaccia
 \lstinputlisting[
     language=Java,
     label={lst:layer-interface},
-    caption={L'interfaccia del Layer.}
+    caption={L'interfaccia del Layer}
 ]{listings/Layer.java}
 
 Un nodo può quindi interrogare un
@@ -147,7 +147,7 @@ di cui il primo (\texttt{baseline}) e l'ultimo
 \lstinputlisting[
     language=Kotlin,
     label={lst:bidimensional-gaussian-layer-kotlin},
-    caption={Costruttore di BidimensionalGaussianLayer.}
+    caption={Costruttore di BidimensionalGaussianLayer}
 ]{listings/BidimensionalGaussianLayer.kt}
 
 Il loader individua la classe indicata dalla chiave \texttt{type}, ne seleziona un
@@ -157,7 +157,7 @@ forma più diretta, mostrata dal \Cref{lst:bidimensional-gaussian-layer}, i para
 \lstinputlisting[
     language=YAML,
     label={lst:bidimensional-gaussian-layer},
-    caption={Costruzione posizionale di BidimensionalGaussianLayer.}
+    caption={Costruzione posizionale di BidimensionalGaussianLayer}
 ]{listings/bidimensional.yml}
 
 La chiave \texttt{molecule} indica la molecola a cui il layer viene associato
@@ -170,7 +170,7 @@ scritta direttamente in Kotlin, sarebbe quella mostrata dal \Cref{lst:bidimensio
 \lstinputlisting[
     language=Kotlin,
     label={lst:bidimensional-gaussian-equivalent},
-    caption={Costruzione equivalente in Kotlin di BidimensionalGaussianLayer.}
+    caption={Costruzione equivalente in Kotlin di BidimensionalGaussianLayer}
 ]{listings/bidimensional-equivalent.kt}
 
 Che i parametri opzionali possano essere omessi non è però una capacità del loader: gli
@@ -189,7 +189,7 @@ nome dell'argomento a cui si riferiscono, come mostrato dal \Cref{lst:bidimensio
 \lstinputlisting[
     language=YAML,
     label={lst:bidimensional-gaussian-layer-named},
-    caption={Costruzione esplicita di BidimensionalGaussianLayer.}
+    caption={Costruzione esplicita di BidimensionalGaussianLayer}
 ]{listings/bidimensional-names.yml}
 
 Questa forma elimina l'ambiguità sull'ordine e rende esplicito a quale parametro ciascun
@@ -212,8 +212,7 @@ indicata dalla chiave \texttt{molecule} (\texttt{moleculeName}).
 \section{Il programma Copernicus e i suoi servizi di dati}
 \label{sec:copernicus}
 
-Copernicus~\footnote{Il programma Copernicus: \url{https://www.copernicus.eu/it}.}
-è il programma di osservazione della Terra dell'Unione Europea, articolato in
+Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
 servizi tematici. Fra questi, il \ac{CEMS} %\footnote{\url{https://emergency.copernicus.eu/}}
 fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
 protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa

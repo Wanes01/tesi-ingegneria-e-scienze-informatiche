@@ -1,0 +1,10 @@
+layers:
+  - type: DoubleCopernicusLayer
+    molecule: dis06
+    parameters:
+      # ...
+      interpolation:
+        type: SeparableSpatioTemporalInterpolation
+        parameters:
+          - type: NearestInterpolation
+          - type: ClosestInterpolation

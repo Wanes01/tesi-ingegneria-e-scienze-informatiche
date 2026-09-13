@@ -202,6 +202,9 @@ tutti quelli che lo precedono. Con questa
 scala e origine, facendo terminare la simulazione dopo 736 unità di
 tempo simulato, si chiude la riproduzione dell'evento con i dati
 del 25 maggio 2023, ore 16:00 UTC.
+I parametri non specificati prendono i loro valori di default,
+in particolare la regola di composizione dei campioni è
+l'interpolazione trilineare.
 
 L'ambiente è un \texttt{OSMEnvironment} (\Cref{subsec:alchemist-osm})
 costruito su un estratto OpenStreetMap di Cesena, nella quale sono collocati
@@ -283,3 +286,37 @@ senza provocare un nuovo scaricamento.
 L'esecuzione è stata ripetuta con successo anche eliminando il file \texttt{.cdsapirc},
 il quale contiene la chiave ECMWF, a conferma che esso viene letto solo quando
 una richiesta di rete si rende necessaria.
+
+La simulazione è stata replicata cambiando le strategie di interpolazione, per verificare
+\req{F5} e \req{F6}. La \Cref{fig:strats} riporta
+il tempo di simulazione 535 (17 maggio 2023, 07:00 UTC), l'istante che coincide col massimo
+della portata, in cui le differenze fra strategie sono più visibili.
+La prima immagine è la configurazione già mostrata
+nella \Cref{fig:caso-studio}, che interpola in modo trilineare; la seconda
+compone, tramite \texttt{SeparableSpatioTemporalInterpolation}, la
+\texttt{NearestInterpolation}, che nello spazio assume il valore del campione più
+vicino, e la \texttt{LastInterpolation}, che nel tempo assume il valore della
+griglia successiva. Nel secondo caso la portata esposta dal layer è costante
+entro ciascuna cella, mentre nel primo la transizione è graduale. 
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\linewidth]{figures/validazione/strats.png}
+  \caption[Due strategie di interpolazione a confronto]{Il medesimo istante
+  della simulazione risolto con due strategie di interpolazione. A sinistra
+  l'interpolazione trilineare, a destra la composizione di
+  \texttt{NearestInterpolation} nello spazio e \texttt{LastInterpolation} nel
+  tempo.}
+  \label{fig:strats}
+\end{figure}
+
+A conferma di \req{F11} anche \texttt{SeparableSpatioTemporalInterpolation} è stato dichiarato
+nel file di configurazione, specificando l'argomento \texttt{interpolation} del layer,
+come mostra il \Cref{lis:separableval}.
+
+\lstinputlisting[
+    %float,
+    language=YAML,
+    label={lis:separableval},
+    caption={[Configurazione di SeparableSpatioTemporalInterpolation]Configurazione della simulazione con l'utilizzo di \texttt{SeparableSpatioTemporalInterpolation}.}
+]{listings/validazione/separable.yml}

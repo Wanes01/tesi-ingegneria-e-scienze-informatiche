@@ -82,8 +82,8 @@ automaticamente i valori convenzionali di riempimento con \texttt{Double.NaN}. L
 convenzione interna del modulo per i valori mancanti coincide quindi con quella che la
 libreria produce.
 
-L'apertura dei file \ac{GRIB} ha richiesto un accorgimento aggiuntivo. Poiché
-estremamente compresso, questo formato necessita di tabelle \ac{XML} esterne
+L'apertura dei file \ac{GRIB} ha richiesto un accorgimento aggiuntivo. Questo formato
+necessita di tabelle \ac{XML} esterne
 per identificare la variabile di riferimento. La libreria NetCDF-Java contiene
 già queste tabelle, ma richiede una specifica realizzazione della fabbrica di parser
 per poterle leggere, e fallisce se un'altra risulta registrata a livello di sistema.

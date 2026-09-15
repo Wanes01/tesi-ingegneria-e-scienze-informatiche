@@ -38,6 +38,7 @@ implementazioni preesistenti per diversi aspetti:
 
 Questi aspetti individuano i seguenti sotto-problemi:
 
+\iffalse
 \begin{enumerate}
     \item \textbf{Rappresentazione}: come rappresentare in memoria, in modo indipendente dalla fonte
     specifica del dato, una serie temporale di griglie raster geospaziali, le cui celle possono
@@ -50,6 +51,15 @@ Questi aspetti individuano i seguenti sotto-problemi:
     riproducibile e verificabile, senza doverli riscaricare a ogni esecuzione della
     simulazione.
 \end{enumerate}
+\fi
+
+\begin{enumerate}
+    \item \textbf{Rappresentazione}: come rappresentare in memoria, indipendentemente dalla fonte, una serie temporale di griglie con
+    celle possibilmente prive di misura;
+    \item \textbf{Risoluzione}: come produrre un valore per una posizione e un istante di simulazione arbitrari
+    a partire da campioni discreti;
+    \item \textbf{Acquisizione}: come ottenere i campioni da un servizio remoto asincrono senza riscaricarli a ogni esecuzione.
+\end{enumerate}
 
 \section{Obiettivi}
 \label{sec:obiettivi}
@@ -59,8 +69,7 @@ di una simulazione grandezze geospaziali misurate, in funzione della posizione c
 occupano e dell'istante di simulazione in cui vi accedono, ottenendole dai data store
 Copernicus.
 
-Per ogni sotto-problema individuato nella sezione precedente viene individuato
-un sotto-obiettivo:
+Ogni sotto-problema individua un sotto-obiettivo:
 
 \begin{enumerate}
     \item \textbf{Rappresentazione}: definire una rappresentazione in memoria di una serie
@@ -287,11 +296,13 @@ indefinitamente a partire dallo zero, e il momento in cui essa termina non è
 necessariamente noto a chi la configura. Alchemist consente di dichiarare condizioni
 di terminazione, verificate dopo ogni evento, ma non ne richiede per forza una.
 
+\iffalse
 Ne consegue che una limitazione sul dominio temporale avrebbe una portata diversa da
 quella sul dominio spaziale. Sul dominio spaziale il rifiuto segnala un'incoerenza
 fra i dati richiesti e l'ambiente simulato, per la quale nessuna risposta sarebbe
 corretta. Sul dominio temporale interromperebbe invece una simulazione potenzialmente
 coerente.
+\fi
 
 Il layer resta quindi definito sull'intero asse temporale, e la regola con cui
 produce un valore al di fuori dell'intervallo coperto è discussa nella
@@ -357,9 +368,9 @@ risultati alterati.
 La revisione dell'interfaccia dei layer era fra le ipotesi di partenza
 del progetto: \texttt{Layer<T,P>} è stata concepita per grandezze calcolabili
 localmente, ed è lecito chiedersi se sia adeguata ad accogliere dati misurati
-provenienti da fonti esterne. Delimitati i requisiti, la domanda viene affrontata
-verificando quali fra essi pongano condizioni sulla forma dell'interrogazione
-anziché sul modo in cui il valore viene prodotto.
+provenienti da fonti esterne. %Delimitati i requisiti, la domanda viene affrontata
+%verificando quali fra essi pongano condizioni sulla forma dell'interrogazione
+%anziché sul modo in cui il valore viene prodotto.
 Nessuno fra i requisiti funzionali riguarda la forma con cui il valore viene richiesto:
 tutti riguardano il modo in cui esso viene prodotto.
 

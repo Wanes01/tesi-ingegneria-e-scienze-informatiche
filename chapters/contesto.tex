@@ -124,7 +124,7 @@ tempo, è il layer stesso a doverselo procurare per questa via.
 Alchemist offre un supporto già maturo per simulazioni su cartografia
 reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap~\cite{osm} e collocare i
 nodi al suo interno, vincolandone il movimento a una rete stradale e delegando il calcolo
-dei percorsi a GraphHopper~\footnote{Motore di calcolo dei percorsi GraphHopper: \url{https://www.graphhopper.com/}.}.
+dei percorsi a GraphHopper\footnote{Motore di calcolo dei percorsi GraphHopper: \url{https://www.graphhopper.com/}.}.
 Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
 latitudine e longitudine. È questa asimmetria che fa nascere il problema affrontato in questa tesi:
 un simulatore capace di collocare e muovere con precisione i propri nodi nello spazio geografico reale, ma
@@ -219,7 +219,7 @@ protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto
 tesi.
 
 L'accesso programmatico ai dati non è però organizzato per servizio: avviene attraverso
-una famiglia di \emph{data store} gestiti dall'\ac{ECMWF}~\footnote{Centro Europeo per le previsioni meteorologiche a medio termine: \url{https://www.ecmwf.int/}}
+una famiglia di \emph{data store} gestiti dall'\ac{ECMWF}\footnote{Centro Europeo per le previsioni meteorologiche a medio termine: \url{https://www.ecmwf.int/}}
 e costruiti sulla stessa
 infrastruttura software, differenziati per host e per il dominio dei dataset che
 espongono:
@@ -240,8 +240,8 @@ catalogo dei dataset disponibili.
 
 L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
-locale nel formato \texttt{.cdsapirc}~\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
-lo stesso adottato dal client Python ufficiale di \ac{ECMWF}~\footnote{Il client ufficiale ECMWF per il recupero dai data store: \url{https://github.com/ecmwf/ecmwf-datastores-client}.}.
+locale nel formato \texttt{.cdsapirc}\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
+lo stesso adottato dal client Python ufficiale di \ac{ECMWF}\footnote{Il client ufficiale ECMWF per il recupero dai data store: \url{https://github.com/ecmwf/ecmwf-datastores-client}.}.
 
 I tre data store espongono i propri dataset in due modalità. La prima è l'interfaccia web
 di cui ciascuno dispone: selezionati i parametri di un dataset, un pulsante avvia lo
@@ -277,7 +277,7 @@ dettaglio:
     la grandezza fisica contenuta è identificata da codici numerici, il cui significato è
     definito da tabelle esterne, standard o specifiche del centro meteorologico di
     origine. Ad esempio, nella tabella 128 di \ac{ECMWF} il codice 167 identifica la
-    temperatura registrata a due metri dal suolo~\footnote{Tabella ECMWF per i file GRIB che esprimono la temperatura a due metri dal suolo: \url{https://codes.ecmwf.int/grib/param-db/167}},
+    temperatura registrata a due metri dal suolo\footnote{Tabella ECMWF per i file GRIB che esprimono la temperatura a due metri dal suolo: \url{https://codes.ecmwf.int/grib/param-db/167}},
     ma la corrispondenza fra codice e
     grandezza fisica non è ricavabile dal solo contenuto del file;
 \item \ac{NetCDF}, distribuito dai data store nelle versioni NetCDF3 e NetCDF4, è un formato

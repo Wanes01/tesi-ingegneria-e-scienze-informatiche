@@ -9,8 +9,8 @@ di esporre ai nodi di una simulazione grandezze geospaziali misurate,
 in funzione della posizione in cui essi si trovano e dell'istante di
 simulazione in cui le richiedono, ottenendole dai data store Copernicus.
 Il risultato ottenuto è un nuovo modulo del simulatore, organizzato
-nei quattro sottomoduli descritti nel \Cref{chap:progettazione} e
-dichiarabile interamente nella configurazione della simulazione.
+nei quattro sotto-moduli descritti nel \Cref{chap:progettazione} ed esprimibile
+in modo dichiarativo interamente nella configurazione della simulazione.
 
 Il sotto-obiettivo di rappresentazione è stato soddisfatto da \texttt{RasterGrid}
 e \texttt{GridSnapshots}, che descrivono rispettivamente una griglia di campioni
@@ -21,15 +21,16 @@ in modo esplicito le celle prive di misura (\req{F7}); delle griglie sono fornit
 una realizzazione densa e una sparsa, scelte dinamicamente durante la costruzione
 della serie in funzione della densità delle singole griglie.
 
-Il sotto-obiettivo di risoluzione è stato soddisfatto dal layer e dalle strategie
+La risoluzione di una posizione e di un istante in un valore è compito
+del layer e dalle strategie
 a cui esso delega. Il layer stabilisce alla costruzione la corrispondenza fra
 il tempo di simulazione e gli istanti del mondo reale, dichiarata da chi
 configura la simulazione anziché fissata dal modulo (\req{F3}),
-trova i campioni pertinenti all'istante in cui viene interrogato e incarica
+trova i campioni pertinenti all'istante in cui viene interrogato e affida
 la produzione del valore a una strategia di interpolazione e a un convertitore,
 entrambi intercambiabili e dichiarabili dalla configurazione (\req{F5}, \req{F6}, \req{F11}).
 
-Il sotto-obiettivo di acquisizione è stato soddisfatto dal sottosistema
+L'acquisizione è raccolta in un sottosistema a sé,
 costituito da \texttt{CacheKey}, \texttt{ExternalDataProvider} e \texttt{CacheManager},
 e dalle loro realizzazioni che dialogano con i tre data store Copernicus.
 L'identità stessa di una richiesta ne decide deterministicamente la voce
@@ -89,7 +90,7 @@ Il modulo opera entro alcune ipotesi e alcune scelte prese.
   contengono più di una grandezza, la configurazione deve indicare quale far esporre
   al layer, e il nome da indicare è quello interno al file, che non coincide
   con quello utilizzato per fare la richiesta verso il data store.
-  Nella modalità che acquisisce i dati da un data store tale nome è noto prima
+  Nella modalità che acquisisce i dati da un data store tale nome non è noto prima
   che l'acquisizione sia avvenuta: chi conduce la simulazione deve eseguirla una
   prima volta, o ispezionare i file ottenuti, per apprenderlo. Il caso è più marcato
   con i file GRIB, nei quali la grandezza è identificata da codici numerici e il

@@ -65,6 +65,15 @@ dalla disponibilità dei data store, è soddisfatto a livelli differenti:
   una richiesta reale verso l'API di ECMWF.
 \end{itemize}
 
+I corpi di risposta riprodotti dal server locale provengono da esecuzioni reali:
+durante lo sviluppo il client è stato esercitato con successo su tutti e tre i
+data store, con richieste a diversi dataset su ciascuno di essi, e i file così
+ottenuti sono stati letti dal modulo senza errori. È in quella fase che sono
+stati riscontrati molti degli scostamenti dal protocollo discussi nel
+\Cref{chap:implementazione}, e le risposte catturate sono
+state impiegate come risorse per i test.
+
+\iffalse
 \section{Verifiche al di fuori dei test}
 \label{sec:verifiche-manuali}
 
@@ -98,6 +107,7 @@ I corpi di risposta, usati come dati di verifica successivamente nei test,
 sono stati catturati proprio da queste esecuzioni, e i file scaricati sono stati letti
 dal modulo senza errori. È proprio in questa fase che sono stati scoperti
 molti degli scostamenti dal protocollo discussi nel \Cref{chap:implementazione}.
+\fi
 
 \section{Simulazione dimostrativa}
 \label{sec:caso-di-studio}
@@ -176,8 +186,6 @@ Questi valori sono prodotti dal modello idrologico LISFLOOD~\cite{lisflood} e
 non misurati sulle posizioni reali, quindi possono sottostimare
 la portata reale effettivamente transitata nel Savio a Cesena
 durante l'evento, dell'ordine delle centinaia di \unit{\cubic\metre\per\second}.
-La simulazione che segue non riproduce quindi l'alluvione nella sua entità
-reale ma solo tramite i valori del modello.
 
 \subsection{Configurazione}
 \label{subsec:configurazione-caso-studio}
@@ -205,6 +213,26 @@ del 25 maggio 2023, ore 16:00 UTC.
 I parametri non specificati prendono i loro valori di default,
 in particolare la regola di composizione dei campioni è
 l'interpolazione trilineare.
+
+Che la dichiarazione possa fermarsi a questi argomenti dipende dai
+costruttori che il compilatore genera per il layer (\Cref{subsec:costruttori-impl});
+questa parte del modulo non viene verificata tramite i test automatici,
+i quali costruiscono il layer direttamente, mentre qui esso viene istanziato
+dal meccanismo di caricamento a partire dal file (\req{F11}). Che le varianti
+attese esistano davvero è stato accertato sul bytecode: l'ispezione con
+\texttt{javap} della classe compilata conferma che \texttt{@JvmOverloads}
+le genera eliminando un argomento opzionale per volta, a partire dall'ultimo.
+Il \Cref{lst:javap} ne riporta un estratto, relativo al secondo costruttore di
+\texttt{DoubleCopernicusLayer}.
+
+\lstinputlisting[
+    language={},
+    keywordstyle={},
+    stringstyle={},
+    commentstyle={},
+    label={lst:javap},
+    caption={[Estratto dell'output di javap]Estratto dell'output di \texttt{javap}; i nomi dei package sono omessi.}
+]{listings/validazione/javap.txt}
 
 L'ambiente è un \texttt{OSMEnvironment} (\Cref{subsec:alchemist-osm})
 costruito su un estratto OpenStreetMap di Cesena, nella quale sono collocati
@@ -255,12 +283,12 @@ di \qty{18.5}{\cubic\metre\per\second}, non necessariamente quelle in cui è nul
 Nelle immagini, in ordine da sinistra verso destra:
 
 \begin{enumerate}
-  \item 25 aprile 2023, 00:00 UTC (tempo di simulazione 0): la portata fluviale
+  \item 25 aprile 2023, 00:00 UTC: la portata fluviale
   del fiume Savio è quella ordinaria e nessun nodo supera la soglia;
-  \item 17 maggio 2023, 07:00 UTC (tempo di simulazione 535): la portata
+  \item 17 maggio 2023, 07:00 UTC: la portata
   raggiunge il proprio massimo. I nodi che rilevano nella propria posizione un
   valore oltre la soglia entrano in allarme e si spostano fuori dalla zona;
-  \item 25 maggio 2023, 16:00 UTC (tempo di simulazione 736): la portata
+  \item 25 maggio 2023, 16:00 UTC: la portata
   rientra sotto la soglia. I nodi già allertati restano fuori dalla zona,
   poiché il programma che eseguono non prevede il rientro.
 \end{enumerate}
@@ -287,6 +315,10 @@ L'esecuzione è stata ripetuta con successo anche eliminando il file \texttt{.cd
 il quale contiene la chiave ECMWF, a conferma che esso viene letto solo quando
 una richiesta di rete si rende necessaria.
 
+Sono state caricate ed eseguite con successo anche varianti della configurazione
+che omettono sottoinsiemi diversi degli argomenti facoltativi del layer,
+verificando così più costruttori generati.
+
 La simulazione è stata replicata cambiando le strategie di interpolazione, per verificare
 \req{F5} e \req{F6}. La \Cref{fig:strats} riporta
 il tempo di simulazione 535 (17 maggio 2023, 07:00 UTC), l'istante che coincide col massimo
@@ -310,9 +342,9 @@ entro ciascuna cella, mentre nel primo la transizione è graduale.
   \label{fig:strats}
 \end{figure}
 
-A conferma di \req{F11} anche \texttt{SeparableSpatioTemporalInterpolation} è stato dichiarato
-nel file di configurazione, specificando l'argomento \texttt{interpolation} del layer,
-come mostra il \Cref{lis:separableval}.
+Anche in questo caso la scelta è stata espressa nel file di configurazione,
+specificando l'argomento \texttt{interpolation} del layer, come mostra il
+\Cref{lis:separableval}
 
 \lstinputlisting[
     %float,

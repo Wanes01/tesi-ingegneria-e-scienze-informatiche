@@ -7,4 +7,4 @@ layers:
         type: SeparableSpatioTemporalInterpolation
         parameters:
           - type: NearestInterpolation
-          - type: ClosestInterpolation
+          - type: LastInterpolation

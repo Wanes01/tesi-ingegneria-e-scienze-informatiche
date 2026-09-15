@@ -189,7 +189,7 @@ Altre regole di interesse pratico però sono separabili, ovvero si risolvono col
 le due griglie spaziali ciascuna a un unico valore in funzione della sola posizione,
 per poi decidere il valore finale rispetto alla regola di interpolazione temporale su questi.
 
-Per queste regole, il
+Per poter realizzare queste regole in modo riutilizzabile, il
 modulo introduce \sloppypar{\texttt{SeparableSpatioTemporalInterpolation}}, che realizza l'astrazione
 principale componendo due strategie indipendenti: una spaziale, che risolve la posizione
 su ciascuna delle due griglie, e una temporale, che combina i due valori così ottenuti
@@ -442,8 +442,6 @@ concreta (Sezione~\ref{subsec:alchemist-loader}). La specializzazione è inoltre
 strategie possono essere stabiliti, cosa non possibile nella classe generica, non essendo
 definibile un convertitore predefinito verso un tipo arbitrario.
 
-Il modo in cui vengono definiti i tre costruttori e i valori di default dei loro
-argomenti sono discussi nel Capitolo~\ref{chap:implementazione}.
 \section{Il sottosistema di acquisizione dati}
 \label{sec:acquisizione}
 

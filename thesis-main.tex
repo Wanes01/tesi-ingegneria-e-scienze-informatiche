@@ -51,9 +51,27 @@
 
 \frontmatter\frontispiece
 
-%\begin{abstract}	
-%Max 2000 characters, strict.
-%\end{abstract}
+\begin{abstract}	
+Il simulatore Alchemist sa collocare i nodi di una simulazione su cartografia reale
+e vincolarne il movimento alla rete stradale, ma le grandezze diffuse nell'ambiente
+che può esporre loro sono prodotte solamente da regole fissate alla costruzione: nessuna
+rappresenta misurazioni del mondo reale.
+
+Questa tesi introduce un nuovo modulo che rende i dati distribuiti dal programma
+Copernicus interrogabili dai nodi nel punto in cui si trovano e nell'istante
+di simulazione in cui li richiedono. Il modulo riconduce file NetCDF e GRIB, il cui
+schema non è fisso, a una rappresentazione uniforme di serie temporali di griglie
+raster; produce un valore anche dove la posizione e l'istante richiesti non coincidono
+con alcun campione, secondo regole di interpolazione e conversione intercambiabili,
+scelte in funzione della semantica della grandezza da esporre; e acquisisce autonomamemte
+i dati dai data store Copernicus, conservandoli in una cache locale che consente il riuso
+di questi ultimi senza nuove richieste di rete. Il risultato è additivo rispetto al
+simulatore e configurabile in modo dichiarativo, senza scrivere codice.
+
+La validazione comprende una suite di test indipendente dalla rete e una simulazione
+dimostrativa costruita sugli eventi alluvionali che hanno colpito la Romagna nel
+maggio 2023.
+\end{abstract}
 
 %\begin{dedication} % this is optional
 %Optional. Max a few lines.

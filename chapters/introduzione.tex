@@ -4,60 +4,83 @@
 \section{Contesto e motivazioni}
 \label{sec:contesto-e-motivazioni}
 
-La simulazione è uno degli strumenti utilizzati per studiare sistemi formati
-da molte entità che interagiscono fra loro e con lo spazio in cui si trovano:
-reti di dispositivi, flotte di veicoli, gruppi di persone che si spostano in
-un'area urbana. Quando lo scenario di riferimento è collocato in un luogo reale,
-l'attendibilità di un esperimento non dipende solamente dal comportamento
-dei suoi attori, ma anche da quanto fedelmente è riprodotto l'ambiente in
-cui essi agiscono.
+La simulazione è uno degli strumenti principali con cui si studiano e si progettano
+i sistemi computazioni distribuiti: insiemi di nodi che eseguono ciascuno una parte
+di un comportamento complessivo, interagiscono fra loro e si trovano dislocati
+nello spazio fisico. Sciamo di droni, reti di sensori ambientali,
+dispositivi personali che coordinano fra loro le persone: in sistemi di questo
+genere il comportamento che si osserva non è stabilito da un nodo in particolare,
+ma emerge dalle interazioni fra nodi vicini. Verificarlo sul campo richiederebbe di
+disporre contemporaneamente di decine o centinaia di dispositivi; ripeterne la verifica
+al variare di una scelta progettuale sarebbe, nella pratica, molto difficile.
 
-Di quell'ambiente fanno parte grandezze che variano da un punto all'altro e
-lungo il tempo, e che non vengono prodotte dagli attori: la portata di un fiume,
+Ciò che un nodo rappresenta nelle simulazioni può variare: a seconda dello scenario
+è un dispositivo di calcolo, la persona che lo porta con sé, un veicolo che percorre
+una strada, o un'entità di natura del tutto diversa. Quello che questi scenari hanno
+in comune, ed è la ragione per cui vengono simulati, è l'essere situati: la posizione
+di un nodo decide con chi esso interagisce, dove può spostarsi e che cosa misura
+nel luogo in cui si trova. Lo spazio costituisce parte specifica del problema e
+quando lo scenario di riferimento è collocato in luogo reale, l'attendibilità di un
+esperimento non dipende solamente dal comportamento dei nodi, ma anche da quanto
+fedelmente è riprodotto l'ambiente in cui essi si trovano.
+
+Di quell'ambiente fanno parte grandezze che variano da un punto all'altro e lungo
+il tempo, e che non vengono prodotte dai nodi: la portata di un fiume,
 la temperatura dell'aria, la concentrazione di inquinanti in atmosfera, il pericolo
-d'incendio di una zona boschiva. Chi si trova sul territorio non può controllarle,
-le percepisce, e vi reagisce prendendo decisioni: cambiando percorso, diramando un
-allarme, coordinandosi con altri attori. Queste misure costituiscono
-lo stimolo esterno rispetto al quale il comportamento degli attori di una
-simulazione prende significato.
+d'incendio di una zona boschiva. Un nodo non può controllarle, le percepisce, e vi
+reagisce prendendo decisioni: cambiando percorso, diramando un allarme, coordinandosi
+con gli altri nodi. Esse costituiscono lo stimolo esterno rispetto al quale
+il comportamento programmato prende significato.
+
+Quando i valori delle grandezze non sono calcolabili ma misurati, cambia anche ciò
+che una simulazione permette di affermare. Il sistema può essere messo alla prova sulle
+condizioni ambientali di un evento realmente accaduto e confrontato con quanto in
+quell'occasione è effettivamente successo, ottenendo dei riscontri che scenari inventati non
+consentono. Sulla stessa base diventano effettuabili analisi \emph{what-if}, in cui
+l'esperimento viene ripetuto variando scelte progettuali, il numero di nodi o la regola
+di coordinamento, per osservare come sarebbe cambiato l'esito a parità di ambiente.
+Alimentare le simulazioni con le stesse fonti di dati che descrivono il territorio permette
+inoltre di creare repliche digitali (\emph{digital twin}) di sistemi fisici, in modo da
+seguirne l'evoluzione per anticiparne il comportamento.
 
 Grandezze di questo genere, per buona parte del pianeta, sono misurate,
-ricostruite e pubblicate con continuità. Copernicus\footnote{Il programma Copernicus: \url{https://www.copernicus.eu/it}.},
+ricostruite e pubblicate con continuità. Copernicus\footnote{Il programma
+Copernicus: \url{https://www.copernicus.eu/it}.},
 il programma di osservazione della Terra dell'Unione Europea, distribuisce liberamente archivi
 che coprono decenni di storia, i quali spaziano dalle rianalisi climatiche ai
 sistemi di allerta alluvionale. Eventi realmente accaduti dispongono quindi
 di descrizioni quantitative pubbliche, consultabili rispetto a istanti temporali
 e posizioni diverse.
 
-Che quei dati siano pubblici e accessibili non basta però perché un attore,
+Che quei dati siano pubblici e accessibili non basta però perché un nodo,
 nel corso di una simulazione, possa chiedere quanto valga una grandezza
 nel punto in cui si trova. I dati sono pubblicati in formati binari specialistici,
 organizzati secondo convenzioni della comunità scientifica che li produce,
 e vanno richiesti a servizi remoti che li preparano su richiesta, impiegando
 un tempo variabile e senza garanzia di riuscita. Soprattutto, sono campionati,
 quindi noti solamente in corrispondenza dei punti di una griglia e di una
-successione di istanti temporali, mentre la posizione di un attore, e il
+successione di istanti temporali, mentre la posizione di un nodo, e il
 momento in cui esso interroga l'ambiente, sono quantità continue che un
 simulatore misura a partire dall'inizio della simulazione.
 
 Alchemist~\cite{alchemist}, il simulatore di sistemi complessi sviluppato
 presso l'Università di Bologna su cui si aggiunge questo lavoro, possiede già
 la maggior parte di ciò che serve per collocare un esperimento in un luogo preciso:
-sa caricare cartografia reale, disporvi gli attori e vincolarne il movimento
+sa caricare cartografia reale, disporvi i nodi e vincolarne il movimento
 alla rete stradale. Ciò che non possiede è un modo per far percepire loro una
 misurazione campionata in una posizione geografica. Le grandezze diffuse
 nell'ambiente sono rappresentate da un'astrazione dedicata, il \emph{layer}, le cui
 realizzazioni disponibili producono però valori calcolati da regole fissate
 al momento della costruzione. Una simulazione può quindi essere accurata nel
 collocare i propri nodi ma non altrettanto in ciò che essi percepiscono una
-volta collocati. 
+volta collocati.
 
 \section{Il contributo di questa tesi}
 \label{sec:contributo}
 
 Il lavoro qui descritto colma questa distanza con un nuovo modulo del
-simulatore, che rende i dati distribuiti da Copernicus interrogabili dagli
-attori come grandezza diffusa nell'ambiente, nel punto in cui l'attore
+simulatore, che rende i dati distribuiti da Copernicus interrogabili dai
+nodi come grandezza diffusa nell'ambiente, nel punto in cui il nodo
 si trova e nell'istante di simulazione in cui lo chiede.
 
 Per fare in modo che ciò sia possibile occorre leggere file il cui schema non
@@ -66,8 +89,8 @@ anche dove una misura non è disponibile, secondo un criterio che non può esser
 unico perché dipende da che cosa la grandezza rappresenta; e ottenere i dati
 dai servizi Copernicus senza alcun intervento manuale, conservandoli in locale
 in modo che esecuzioni successive non debbano richiederli una seconda volta.
-Il tutto senza modificare le astrazioni del modello del simulatore, e in modo
-dichiarabile direttamente nel file di configurazione di una simulazione,
+Il tutto senza modificare le astrazioni del modello del simulatore, ed esprimibile
+in modo dichiarativo nel file di configurazione di una simulazione,
 senza scrivere codice.
 
 Il codice sorgente del modulo, nella versione documentata in questa tesi, è
@@ -80,32 +103,45 @@ consultabile\footnote{Archivio permanente del modulo: \url{https://archive.softw
 La tesi è strutturata nei seguenti capitoli:
 
 \begin{itemize}
-  \item \textbf{Contesto} (\Cref{chap:contesto}): vengono descritti gli elementi su cui il
-  lavoro poggia: le parti del simulatore inerenti al progetto, i servizi attraverso
-  cui Copernicus distribuisce i propri dati, i formati e le convenzioni con cui
-  questi sono codificati e lo standard a cui si ispirano le richieste remote.
+  \item \textbf{Contesto} (\Cref{chap:contesto}). Descrive gli elementi su cui il
+  lavoro poggia: le parti di Alchemist inerenti al progetto, ovvero l'astrazione del
+  layer, il tempo di simulazione, il supporto geospaziale preesistente e il caricamento
+  delle simulazioni da file di configurazione; i data store attraverso cui Copernicus
+  distribuisce i propri dati; i formati NetCDF e GRIB e le convenzioni su di essi;
+  e lo standard OGC API Processes, a cui si ispirano le richieste remote.
 
-  \item \textbf{Analisi} (\Cref{chap:analisi}): si scompone il problema nelle sue parti e
-  se ne ricavano i requisiti che la soluzione deve soddisfare, vengono discusse le questioni che
-  vanno delimitate prima di poter essere tradotte in scelte progettuali e si individuano le
-  entità in gioco.
+  \item \textbf{Analisi} (\Cref{chap:analisi}). Approfondisce la corrispondenza tra
+  il tempo di simulazione e gli istanti del mondo reale, la discretezza spazio-temporale
+  dei campioni e l'adeguatezza dell'interfaccia dei layer nell'esporre dati misurati
+  anziché calcolati. Successivamente, vengono formulate le ipotesi sui dati di riferimento;
+  a partire da esse, il problema viene scomposto nei sotto-problemi di rappresentazione,
+  risoluzione e acquisizione dei dati, definendone i requisiti e individuando le entità
+  che li soddisfarli.
 
-  \item \textbf{Progettazione} (\Cref{chap:progettazione}): viene esposta la struttura che
-  deriva dall'analisi, ovvero la suddivisione del modulo, le astrazioni che compongono
-  ciascuna delle sue parti e le decisioni che le attraversano.
+  \item \textbf{Progettazione} (\Cref{chap:progettazione}). Viene esposta la struttura che
+  deriva dall'analisi, ovvero la suddivisione del modulo in rappresentazione,
+  risoluzione, layer e acquisizione, le astrazioni che compongono ciascuna di queste
+  parti e le decisioni che le attraversano, fra le quali il tipo comune attribuito ai
+  campioni, la scelta fra una rappresentazione densa e una sparsa delle griglie, la
+  separazione fra la regola di interpolazione e la conversione del valore esposto, e il
+  criterio che identifica una richiesta verso una fonte di dati esterna.
 
-  \item \textbf{Implementazione} (\Cref{chap:implementazione}): ci si sofferma sui punti
-  in cui la realizzazione ha richiesto scelte non deducibili dalla progettazione, imposte
-  dal formato dei dati, dal comportamento dei servizi remoti o dal meccanismo con
-  cui Alchemist istanzia i componenti di una simulazione.
+  \item \textbf{Implementazione} (\Cref{chap:implementazione}). Ci si sofferma sui punti
+  in cui la realizzazione ha richiesto scelte non deducibili dalla progettazione: la
+  normalizzazione degli assi di file il cui schema non è noto a priori, il dialogo con
+  i data store con le differenze dal protocollo di riferimento, la produzione
+  atomica delle voci di cache e la forma imposta ai costruttori del layer dal
+  meccanismo con cui Alchemist istanzia i componenti di una simulazione.
 
-  \item \textbf{Validazione} (\Cref{chap:validazione}): vengono riportate le evidenze
-  del corretto funzionamento del modulo, le quali comprendono la suite di test
-  automatici, le verifiche condotte al di fuori di essi e una simulazione dimostrativa
-  che impiega l'intera catena su dati reali, costruita attorno agli eventi alluvionali
+  \item \textbf{Validazione} (\Cref{chap:validazione}). Si riportano le evidenze
+  del corretto funzionamento del modulo: la suite di test automatici, costruita in modo
+  da non dipendere dai data store né dal possesso di credenziali, e una simulazione dimostrativa che
+  utilizza l'intera catena su dati reali, prendendo come riferimento gli eventi alluvionali
   che hanno colpito la Romagna nel maggio 2023.
 
-  \item \textbf{Conclusioni} (\Cref{chap:conclusioni}): viene tracciato un bilancio
-  del lavoro rispetto agli obiettivi, vengono dichiarati i limiti del lavoro e
-  si indicano le direzioni di sviluppo che la struttura realizzata rende possibili. 
+  \item \textbf{Conclusioni} (\Cref{chap:conclusioni}). Si discute il raggiungimento
+  degli obiettivi preposti, con seguente discussione dei limiti entro cui il modulo
+  opera, come la forma delle griglie ammesse; si indicano le direzioni di
+  sviluppo che la struttura realizzata rende possibili, come l'impiego di fonti
+  diverse dai data store Copernicus.
 \end{itemize}

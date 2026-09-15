@@ -44,12 +44,11 @@ il tipo a doppia precisione è in grado di rappresentarlo senza perdita. Il modu
 adotta quindi \texttt{Double} come unico tipo dei campioni lungo tutta la catena
 interna.
 
-La scelta non è dettata solo dalla capacità rappresentativa. Il meccanismo di caricamento
-delle simulazioni non è in grado di istanziare una classe generica, e richiede che di
-ciascuna esista una specializzazione concreta per il tipo desiderato (Sezione~\ref{subsec:alchemist-loader}).
-Rendere generica anche la rappresentazione,
-introducendo una griglia parametrica in un tipo \texttt{T} arbitrario, avrebbe quindi
-richiesto una specializzazione non generica, lungo l'intera gerarchia,
+La scelta non è dettata solo dalla capacità rappresentativa:
+il meccanismo di caricamento non è in grado di istanziare classi generiche (Sezione~\ref{subsec:alchemist-loader}),
+ciò comporta che rendere generica anche la rappresentazione,
+introducendo una griglia parametrica in un tipo \texttt{T} arbitrario, avrebbe
+richiesto una specializzazione lungo l'intera gerarchia
 per ogni classe da usare nelle configurazioni,
 moltiplicando le classi necessarie a soddisfare \req{F11}.
 
@@ -436,9 +435,9 @@ alla simulazione di disporre dei dati di cui ha bisogno, come \req{NF6} richiede
 
 La classe \texttt{CopernicusLayer<T>} è generica nel tipo esposto; il modulo fornisce anche
 \texttt{DoubleCopernicusLayer}, che ne fissa il parametro al tipo numerico. La sua
-esistenza soddisfa \req{F11}: il meccanismo di caricamento delle simulazioni non è in
-grado di istanziare una classe generica, mentre può farlo con una sua specializzazione
-concreta (Sezione~\ref{subsec:alchemist-loader}). La specializzazione è inoltre il punto in cui i valori predefiniti delle
+esistenza soddisfa \req{F11}, rendendo dichiarabile una specializzazione del layer
+nella configurazione YAML (Sezione~\ref{subsec:alchemist-loader}).
+La specializzazione è inoltre il punto in cui i valori predefiniti delle
 strategie possono essere stabiliti, cosa non possibile nella classe generica, non essendo
 definibile un convertitore predefinito verso un tipo arbitrario.
 

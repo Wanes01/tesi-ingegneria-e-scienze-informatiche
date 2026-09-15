@@ -66,6 +66,7 @@ alla terminazione, ed è interrogabile in qualunque momento.
 \subsection{Il concetto di \emph{layer}}
 \label{subsec:alchemist-layer}
 
+\iffalse
 Le molecole e le concentrazioni descrivono lo stato interno dei singoli nodi. Alcune
 grandezze, però, non appartengono ad alcun nodo in particolare: sono proprietà
 dell'ambiente stesso, definite in ogni suo punto indipendentemente dal fatto che vi si
@@ -73,6 +74,12 @@ trovi o meno un nodo a percepirle. La temperatura, l'intensità luminosa, la
 concentrazione di un inquinante in atmosfera sono esempi di questo tipo: un nodo che
 si muove nello spazio ne osserva valori diversi non perché il proprio stato sia
 cambiato, ma perché è cambiata la sua posizione.
+\fi
+
+Le molecole e le concentrazioni descrivono lo stato interno dei singoli nodi. Alcune
+grandezze, come la temperatura o la concentrazione di un inquinante, non appartengono
+ad alcun nodo ma all'ambiente: un nodo che si sposta ne osserva valori diversi perché
+cambia la sua posizione, non il suo stato.
 
 Alchemist modella queste grandezze attraverso il concetto di \emph{layer}: una
 sovrapposizione di dati distribuita sull'ambiente, associata a una molecola e
@@ -93,12 +100,16 @@ quel punto, usandolo per esempio come stimolo a cui reagire.
 Le implementazioni preesistenti in Alchemist realizzano però tutte layer
 che producono valori sintetici, determinati da una regola fissata alla costruzione, come
 \sloppypar{\texttt{BidimensionalGaussianLayer}}, che descrive una distribuzione
-gaussiana bidimensionale centrata su un punto. Queste realizzazioni sono adeguate a
+gaussiana bidimensionale centrata su un punto.
+
+\iffalse
+Queste realizzazioni sono adeguate a
 rappresentare fenomeni il cui comportamento varia rispetto a una formula,
 ma non un fenomeno misurato: i dati ambientali reali non sono
 espressi da una funzione, bensì campionati su griglie spaziali a risoluzione
 finita, disponibili solo in corrispondenza di determinati istanti e distribuiti in
 formati binari specialistici.
+\fi
 
 \subsection{Il tempo di simulazione}
 \label{subsec:alchemist-time}
@@ -127,9 +138,13 @@ reale: un \texttt{OSMEnvironment} può caricare estratti di OpenStreetMap~\cite{
 nodi al suo interno, vincolandone il movimento a una rete stradale e delegando il calcolo
 dei percorsi a GraphHopper\footnote{Motore di calcolo dei percorsi GraphHopper: \url{https://www.graphhopper.com/}.}.
 Le posizioni in questi ambienti sono espresse come \texttt{GeoPosition}, coppie di
-latitudine e longitudine. È questa asimmetria che fa nascere il problema affrontato in questa tesi:
+latitudine e longitudine.
+
+\iffalse
+È questa asimmetria che fa nascere il problema affrontato in questa tesi:
 un simulatore capace di collocare e muovere con precisione i propri nodi nello spazio geografico reale, ma
 non dotato di un modo per far percepire loro misurazioni campionate nello spazio.
+\fi
 
 \subsection{Il caricamento delle simulazioni da YAML}
 \label{subsec:alchemist-loader}
@@ -207,8 +222,10 @@ dell'istanziazione, fra cui l'environment stesso, sono iniettate automaticamente
 parametro ne dichiari il tipo, e non compaiono quindi fra quelli dichiarati nella
 configurazione.
 
+\iffalse
 L'istanza risultante viene registrata, nell'environment, in corrispondenza della molecola
 indicata dalla chiave \texttt{molecule} (\texttt{moleculeName}).
+\fi
 
 \section{Il programma Copernicus e i suoi servizi di dati}
 \label{sec:copernicus}
@@ -222,34 +239,36 @@ tesi.
 L'accesso programmatico ai dati non è però organizzato per servizio: avviene attraverso
 una famiglia di \emph{data store} gestiti dall'\ac{ECMWF}\footnote{Centro Europeo per le previsioni meteorologiche a medio termine: \url{https://www.ecmwf.int/}}
 e costruiti sulla stessa
-infrastruttura software, differenziati per host e per il dominio dei dataset che
-espongono:
+infrastruttura software, differenziati solo per host e per il dominio dei dataset che
+espongono, quindi un unico client è sufficiente a interrogarli tutti. Essi sono:
 
 \begin{itemize}
-    \item il \ac{CDS}, data store del \ac{C3S}, che ospita fra gli altri ERA5, la
+    \item \ac{CDS}, data store del \ac{C3S}, che ospita fra gli altri ERA5, la
     rianalisi climatica globale prodotta da \ac{ECMWF};
-    \item l'\ac{EWDS}, data store del \ac{CEMS}, che ospita i dataset di \ac{EFAS} e
+    \item \ac{EWDS}, data store del \ac{CEMS}, che ospita i dataset di \ac{EFAS} e
     \ac{GloFAS}, sistemi di allerta alluvionale rispettivamente a scala europea e
     globale, e quelli relativi agli incendi boschivi;
-    \item l'\ac{ADS}, data store del \ac{CAMS}, relativo a composizione atmosferica,
+    \item \ac{ADS}, data store del \ac{CAMS}, relativo a composizione atmosferica,
     qualità dell'aria, gas serra e radiazione solare.
 \end{itemize}
-
-I tre condividono la stessa infrastruttura, per cui un unico
-client è sufficiente a interrogarli tutti, e la differenza si riduce all'host e al
-catalogo dei dataset disponibili.
 
 L'autenticazione verso i tre data store avviene tramite un unico token \ac{ECMWF}:
 la stessa identità è valida su \ac{CDS}, \ac{EWDS} e \ac{ADS}, e viene letta da un file di configurazione
 locale nel formato \texttt{.cdsapirc}\footnote{Struttura del file \texttt{.cdsapirc}: \url{https://cds.climate.copernicus.eu/how-to-api}},
 lo stesso adottato dal client Python ufficiale di \ac{ECMWF}\footnote{Il client ufficiale ECMWF per il recupero dai data store: \url{https://github.com/ecmwf/ecmwf-datastores-client}.}.
 
+\iffalse
 I tre data store espongono i propri dataset in due modalità. La prima è l'interfaccia web
 di cui ciascuno dispone: selezionati i parametri di un dataset, un pulsante avvia lo
 scaricamento. La seconda è programmatica: la stessa interfaccia, a selezione avvenuta,
 mostra il frammento di codice da fornire al client Python ufficiale, che effettua la
 richiesta per conto dell'utente. La selezione dei parametri è quindi la stessa nei due
 casi, e a distinguerli è solo il modo in cui viene trasmessa.
+\fi
+
+Ciascun data store espone i dataset tramite un'interfaccia web che, selezionati i parametri,
+ne consente lo scaricamento oppure mostra il frammento di codice equivalente per il client
+Python ufficiale: la selezione dei parametri è quindi la stessa nei due casi.
 
 Il risultato di una richiesta non è necessariamente un solo file. Una selezione può
 individuare più prodotti, ad esempio più variabili o più intervalli temporali, e in tal

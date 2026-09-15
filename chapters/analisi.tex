@@ -317,11 +317,15 @@ La terza è invece una restrizione effettiva del campo di applicabilità: si ass
 griglia spaziale sia definita da un asse di latitudini e uno di longitudini indipendenti e
 strettamente monotoni, non necessariamente a passo costante. Come osservato nella
 Sezione~\ref{sec:formati-raster}, non tutti i dataset distribuiti dai data store la
-soddisfano: alcuni sono campionati su una griglia nativa in una proiezione cartografica,
+soddisfano, poiché alcuni sono campionati su griglia nativa in una proiezione cartografica.
+
+\iffalse
+: alcuni sono campionati su una griglia nativa in una proiezione cartografica,
 nella quale le coordinate geografiche di ciascuna cella sono note ma non ottenibili come
 prodotto cartesiano di due assi indipendenti. Individuare la cella che contiene una data
 posizione richiede allora di invertire la proiezione fra il sistema di riferimento del
 dataset e quello geografico.
+\fi
 
 La restrizione è stata ritenuta accettabile perché la forma di distribuzione
 prevalente prevede una griglia in latitudine e longitudine, sulla quale il

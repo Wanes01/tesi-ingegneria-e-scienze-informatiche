@@ -15,6 +15,12 @@
 \usepackage{siunitx}
 \usepackage{placeins}
 \usepackage{needspace}
+\usepackage{eso-pic}
+
+\newcommand{\logo}[1]{\def\thelogo{#1}}
+\newlength{\frontispiecelogotop}\setlength{\frontispiecelogotop}{35.4bp}       % 708 twip
+\newlength{\frontispiecelogowidth}\setlength{\frontispiecelogowidth}{184.32bp}  % 2340869 EMU
+\newlength{\frontispiecelogoheight}\setlength{\frontispiecelogoheight}{133.2bp} % 1691643 EMU
 
 \sisetup{per-mode = symbol}
 
@@ -77,18 +83,34 @@
 \newcommand{\frontispiece}{
     \newgeometry{margin=0.8in}
     \begin{titlepage}
+        \ifdefined\thelogo
+            \AddToShipoutPictureBG*{%
+                \AtPageUpperLeft{%
+                    \put(\LenToUnit{0.5\paperwidth},\LenToUnit{-\frontispiecelogotop}){%
+                        \makebox(0,0)[t]{%
+                            \includegraphics[width=\frontispiecelogowidth,height=\frontispiecelogoheight]{\thelogo}%
+                        }%
+                    }%
+                }%
+            }%
+            \vspace*{\dimexpr\frontispiecelogotop+\frontispiecelogoheight
+                -1in-\voffset-\topmargin-\headheight-\headsep-\topskip
+                +0.8cm\relax}
+        \fi
         \centering
-        \large
-        \textbf{\theschool}
-        \\
-        \noindent\hrulefill
+        \normalsize
+        \theschool
+
         \vspace{0.4cm}
-        
         \Large
         \theprogramme
+        \large
+        \\
+        \noindent\hrulefill
 
         \Huge
-        \vspace{4cm}
+        \vspace{3cm}
+
         \textbf{
             \thetitle
         }
@@ -99,7 +121,7 @@
         \\
         \textsc{\thesubject}
 
-        \vspace{4cm}
+        \vspace{3cm}
         %
         \begin{minipage}[t]{0.64\textwidth}
             \begin{flushleft}

@@ -58,13 +58,22 @@ dalla disponibilità dei data store, è soddisfatto a livelli differenti:
   conta le proprie invocazioni e può essere istruita a fallire, a non produrre
   file o a fallire dopo averne prodotti alcuni;
   \item il client dei data store dialoga con un server HTTP locale,
+  realizzato con quello incluso nel JDK (\texttt{com.sun.net.httpserver}),
+  che riproduce i corpi di risposta catturati durante lo sviluppo
+  da richieste reali a diversi dataset dei tre data store, sostituendo
+  gli indirizzi con quello locale, così che nessuna richiesta raggiunga
+  l'API di ECMWF.
+  \iffalse
+  \item il client dei data store dialoga con un server HTTP locale,
   realizzato con quello incluso nel JDK (\texttt{com.sun.net.httpserver}), che
   riproduce i corpi di risposta catturati da richieste reali ai tre data store.
   Prima di essere serviti, gli indirizzi dei data store reali vengono
   sostituiti con quello del server locale, in modo che non avvenga mai
   una richiesta reale verso l'API di ECMWF.
+  \fi
 \end{itemize}
 
+\iffalse
 I corpi di risposta riprodotti dal server locale provengono da esecuzioni reali:
 durante lo sviluppo il client è stato esercitato con successo su tutti e tre i
 data store, con richieste a diversi dataset su ciascuno di essi, e i file così
@@ -72,41 +81,6 @@ ottenuti sono stati letti dal modulo senza errori. È in quella fase che sono
 stati riscontrati molti degli scostamenti dal protocollo discussi nel
 \Cref{chap:implementazione}, e le risposte catturate sono
 state impiegate come risorse per i test.
-
-\iffalse
-\section{Verifiche al di fuori dei test}
-\label{sec:verifiche-manuali}
-
-La compatibilità con il caricamento (\req{F11}) è la parte del modulo più
-condizionata da vincoli esterni (\Cref{subsec:costruttori-impl}) e non è
-verificata dai test automatici, i quali costruiscono il layer direttamente.
-La verifica è avvenuta in due modi distinti. Il primo è tramite il bytecode:
-l'ispezione con \texttt{javap} della classe compilata conferma che 
-\texttt{@JvmOverloads} genera tutte le varianti dei costruttori eliminando un argomento
-opzionale per volta, partendo dall'ultimo di questi.
-Il \Cref{lst:javap} riporta un estratto dell'output di \texttt{javap} che comprende le
-varianti del secondo costruttore di \texttt{DoubleCopernicusLayer}.
-
-\lstinputlisting[
-    language={},
-    keywordstyle={},
-    stringstyle={},
-    commentstyle={},
-    label={lst:javap},
-    caption={[Estratto dell'output di javap]Estratto dell'output di \texttt{javap}; i nomi dei package sono omessi.}
-]{listings/validazione/javap.txt}
-
-La seconda modalità è il caricamento effettivo: la configurazione della 
-simulazione dimostrativa (\Cref{sec:caso-di-studio}) e alcune sue varianti, che omettono
-suffissi diversi dagli argomenti facoltativi o selezionano strategie
-diverse, sono state caricate ed eseguite con successo.
-
-In particolare, il client è stato esercitato con successo su tutti e tre i data store
-reali, con richieste a diversi dataset su ciascuno di essi.
-I corpi di risposta, usati come dati di verifica successivamente nei test,
-sono stati catturati proprio da queste esecuzioni, e i file scaricati sono stati letti
-dal modulo senza errori. È proprio in questa fase che sono stati scoperti
-molti degli scostamenti dal protocollo discussi nel \Cref{chap:implementazione}.
 \fi
 
 \section{Simulazione dimostrativa}
@@ -130,8 +104,8 @@ presa in considerazione comprende il secondo dei due episodi di precipitazione
 intensa che hanno causato gli eventi.
 
 La scelta del dataset è legata alla scala del fenomeno da rappresentare:
-i nodi vengono collocati sulla rete stradale di Cesena, si richiede quindi che le griglie
-che compongono la serie abbiano una risoluzione spaziale tale da non esporre
+si richiede che le griglie che compongono la serie abbiano
+una risoluzione spaziale tale da non esporre
 a tutti i nodi il medesimo valore. Fra i prodotti distribuiti
 dai data store Copernicus, quelli del sistema \ac{EFAS} presentano una risoluzione
 adeguata alla scala del fenomeno. I dati provengono quindi dal dataset
@@ -148,10 +122,8 @@ circa \qtyproduct{35 x 31}{\kilo\metre} fra nord-sud ed est-ovest.
 La variabile richiesta è la portata fluviale media nelle sei ore precedenti,
 ovvero la quantità media di acqua che attraversa una determinata sezione di un
 fiume nell'unità di tempo, misurata in \unit{\cubic\metre\per\second} e fornita
-a intervalli di sei ore. Ogni valore non è quindi una misura istantanea: è la
-media della portata nelle sei ore
-che precedono l'istante a cui è associato nel file. Il layer lo tratta invece
-come se fosse il valore assunto in quell'istante, e interpola fra un valore e
+a intervalli di sei ore. Il layer tratta invece ogni valore
+come se fosse quello assunto in quell'istante, e interpola fra un valore e
 il successivo. Ciò comporta che eventuali picchi nella portata vengano nascosti
 dal valore medio. Il \Cref{lst:richiesta-efas} riporta i parametri
 della richiesta.
@@ -164,10 +136,14 @@ della richiesta.
 
 In questo dataset i campi \texttt{hmonth} e \texttt{hday} indicano i mesi e i
 giorni selezionati, e vengono richieste tutte le griglie disponibili nell'arco
-della giornata, una ogni sei ore. Il parametro \texttt{model\_levels} viene
+della giornata, una ogni sei ore.
+\iffalse
+Il parametro \texttt{model\_levels} viene
 specificato anche se non ha un uso effettivo: altre variabili dello stesso
 dataset possono essere campionate a più livelli, mentre la portata idrica è
-definita solo sulla superficie. Il parametro \texttt{area} delimita la zona di
+definita solo sulla superficie.
+\fi
+Il parametro \texttt{area} delimita la zona di
 studio, in questo caso un rettangolo che include l'intera città di Cesena.
 L'intervallo richiesto va dall'inizio di aprile fino alla fine di maggio 2023
 e precede quindi di alcune settimane l'origine temporale fissata nella configurazione
@@ -205,8 +181,7 @@ Gli ultimi due parametri del layer fissano la corrispondenza temporale:
 un'unità di tempo simulato
 corrisponde a un'ora reale, e il tempo zero al 25 aprile 2023, ore 00:00 UTC. Il
 valore di \texttt{timeScale} coincide con quello predefinito, ma va indicato
-perché il sistema di caricamento, per assegnare per nome un parametro opzionale, richiede anche
-tutti quelli che lo precedono. Con questa
+per poter specificare \texttt{timeOrigin} (\Cref{subsec:alchemist-loader}). Con questa
 scala e origine, facendo terminare la simulazione dopo 736 unità di
 tempo simulato, si chiude la riproduzione dell'evento con i dati
 del 25 maggio 2023, ore 16:00 UTC.
@@ -214,6 +189,7 @@ I parametri non specificati prendono i loro valori di default,
 in particolare la regola di composizione dei campioni è
 l'interpolazione trilineare.
 
+\iffalse
 Che la dichiarazione possa fermarsi a questi argomenti dipende dai
 costruttori che il compilatore genera per il layer (\Cref{subsec:costruttori-impl});
 questa parte del modulo non viene verificata tramite i test automatici,
@@ -224,6 +200,12 @@ attese esistano davvero è stato accertato sul bytecode: l'ispezione con
 le genera eliminando un argomento opzionale per volta, a partire dall'ultimo.
 Il \Cref{lst:javap} ne riporta un estratto, relativo al secondo costruttore di
 \texttt{DoubleCopernicusLayer}.
+\fi
+Queste dichiarazioni dipendono dai costruttori generati da \texttt{@JvmOverloads}
+(\Cref{subsec:costruttori-impl}), che i test automatici non esercitano perché
+costruiscono il layer direttamente. La loro presenza è stata accertata ispezionando
+il bytecode con \texttt{javap} (\Cref{lst:javap}) e caricando varianti della configurazione
+che omettono sottoinsiemi diversi degli argomenti facoltativi.
 
 \lstinputlisting[
     language={},
@@ -306,10 +288,9 @@ trova la voce e il layer viene costruito senza alcuna richiesta di rete
     caption={[Log della seconda esecuzione.]{Messaggio del modulo alla seconda esecuzione con la stessa configurazione. Prefisso del logger omesso.}}
 ]{listings/validazione/cache_hit.txt}
 
-La chiave della voce di cache è derivata dall'endpoint, dal dataset e dal contenuto della
-richiesta. I parametri che non ne fanno parte, come l'origine temporale o la
-strategia di interpolazione, possono quindi cambiare fra un'esecuzione e l'altra
-senza provocare un nuovo scaricamento.
+Poiché l'identità della richiesta non comprende l'origine temporale
+né le strategie (\Cref{subsec:nome-cartella-impl}),
+questi possono cambiare fra un'esecuzione e l'altra senza un nuovo scaricamento.
 
 L'esecuzione è stata ripetuta con successo anche eliminando il file \texttt{.cdsapirc},
 il quale contiene la chiave ECMWF, a conferma che esso viene letto solo quando

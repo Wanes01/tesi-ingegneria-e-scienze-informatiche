@@ -576,7 +576,7 @@ ECMWF. Il modulo confina l'intero dialogo in
  
 Una richiesta viene sottomessa in \texttt{POST} al percorso di esecuzione del processo, che
 lo standard definisce come \texttt{/processes/\{processID\}/execution}. I data store lo
-precedono con un prefisso proprio, a sua volta preceduto dall'indirizzo del data store
+precedono con un prefisso proprio, assieme dall'indirizzo del data store
 ricevuto dal layer come \texttt{endpoint}, e assegnano al \emph{processID} il nome del
 dataset richiesto. Il corpo della richiesta contiene la sola selezione dei parametri,
 associata alla chiave \texttt{inputs}. L'identità dell'utente viaggia nell'intestazione
@@ -648,7 +648,7 @@ propria lunghezza. Il valore dato dai data store è invece il digest MD5 grezzo.
 
 Il digest esposto presenta una particolarità non documentata: è rappresentato come numero
 esadecimale privo delle cifre nulle iniziali, e ha quindi lunghezza variabile, mentre il
-digest calcolato localmente ne ha sempre trentadue. Un confronto diretto fra le due stringhe
+digest calcolato localmente ne ha sempre 32. Un confronto diretto fra le due stringhe
 fallirebbe quindi ogni volta che il digest del file comincia per zero, pur essendo il file
 integro e correttamente leggibile. Il valore ricevuto viene pertanto riportato alla lunghezza
 standard prima del confronto.
@@ -692,9 +692,9 @@ riportata nel \Cref{lst:problem-detail}.
     caption={[Ricostruzione del fallimento di una richiesta]Ricostruzione della causa di un fallimento dal corpo della risposta.}
 ]{listings/implementazione/ProblemDetail.kt}
  
-La prima istruzione realizza l'ordine di precedenza con una catena di operatori \texttt{?:}:
+La prima istruzione realizza l'ordine di precedenza:
 viene usato \texttt{detail} se presente, altrimenti \texttt{traceback}, altrimenti il titolo
 del problema. Se nessuno dei tre è presente la funzione restituisce una stringa vuota.
 Al messaggio vengono poi accodati il tipo
 del problema e, se presente, l'identificativo fornito dal servizio, che permette
-di ricondurre l'errore alla specifica richiesta.
+di ricondurre l'errore alla richiesta specifica.

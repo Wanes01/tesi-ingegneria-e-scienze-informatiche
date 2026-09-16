@@ -37,7 +37,7 @@ Una decisione precede la progettazione dei sottomoduli: quale tipo attribuire ai
 campioni durante l'intero percorso che va dalla lettura del file al valore restituito
 dal layer.
 
-I formati \ac{GRIB} e \ac{NetCDF} esposti dai data store Copernicus codificano
+I formati \ac{GRIB} e \ac{NetCDF} esposti dai data store Copernicus espongono
 tutte le misure in virgola mobile, anche nel caso in cui siano esse in origine
 interi, booleani o categorici. Qualunque sia il significato originale del dato grezzo,
 il tipo a doppia precisione è in grado di rappresentarlo senza perdita. Il modulo
@@ -115,7 +115,7 @@ su un'area prevalentemente continentale, riporta una misura in quasi tutte le ce
 della griglia; la stessa grandezza campionata su tratti costieri è invece definita
 solo lungo i tratti terreni, lasciando priva di misura la maggior parte della griglia.
 
-Si noti che la distinzione è invisibile a chi usa la griglia:
+La distinzione tra le due è invisibile a chi usa la griglia:
 chi vi accede vede unicamente il tipo \texttt{RasterGrid}, e le due realizzazioni
 differiscono solo per il compromesso fra memoria occupata e costo di accesso.
 
@@ -142,6 +142,9 @@ dal modellista in funzione della simulazione che intende condurre. L'astrazione
 \texttt{GridSnapshots} non impone comunque questa strategia, e una realizzazione che
 carichi le griglie su richiesta è possibile senza alcuna modifica al layer.
 
+La costruzione di una serie richiede anche di indicare quale variabile estrarre, poiché un file
+può contenerne più di una (\Cref{subsec:variabile-impl}).
+\iffalse
 Un \ac{GRIB} o \ac{NetCDF} può contenere più variabili distinte: un archivio scaricato da
 un data store Copernicus può includere, ad esempio, sia la temperatura a due metri dal suolo
 sia la velocità del vento nello stesso file. La costruzione di una serie richiede quindi di specificare
@@ -150,22 +153,31 @@ essere omesso quando i file ne contengono una sola, caso in cui essa è individu
 senza ambiguità.
 Il modo in cui una variabile viene individuata ed estratta da un file è discusso nel
 Capitolo~\ref{chap:implementazione}.
+\fi
 
 \section{Le strategie di risoluzione dei valori}
 \label{sec:risoluzione}
 
+\iffalse
 La Sezione~\ref{subsec:discretezza-campioni} ha stabilito, con \req{F5}, che la regola con
 cui un valore viene prodotto a partire dai campioni disponibili non può essere fissata nel
 codice, ma deve essere configurabile e intercambiabile. Questa sezione ne descrive la
 realizzazione come famiglia di strategie, e la estende al secondo passaggio necessario a
 produrre il valore restituito dal layer: la traduzione da un \texttt{Double} al tipo
 esposto ai nodi, richiesta da \req{F6}.
+\fi
+Come stabilito da \req{F5}, la regola impiegata per la produzione del valore
+del layer non può essere unica. Questa sezione ne descrive la realizzazione come
+famiglia di strategie~\cite{gof1994} e la estende alla traduzione del valore nel tipo
+esposto ai nodi, richiesta da \req{F6}.
 
 \subsection{Le strategie di interpolazione}
 \label{subsec:interpolazione}
 
+\iffalse
 Il requisito si traduce nell'introduzione di un'astrazione per la regola e di
 un insieme di realizzazioni intercambiabili, secondo lo schema noto come \emph{strategia}~\cite{gof1994}.
+\fi
 La \Cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 
 \begin{figure}[h]
@@ -210,6 +222,7 @@ e una successiva interpolazione lineare lungo quella temporale~\cite{engel2006re
 Quest'ultima non costituisce tuttavia una specializzazione della composizione separabile,
 bensì una sua configurazione fissata, e viene quindi realizzata per delegazione.
 
+\iffalse
 La strategia di interpolazione è inoltre il punto in cui si decide il destino dei valori
 mancanti, qui rappresentati da \texttt{Double.NaN}: \req{F7} ne impone un trattamento
 esplicito, e la Sezione~\ref{subsec:discretezza-campioni} ha stabilito che la decisione
@@ -217,6 +230,10 @@ dipenda dalla semantica del dato. In \texttt{BilinearInterpolation}, ad esempio,
 scelto di propagare il valore mancante se almeno uno dei quattro campioni circondanti la
 posizione non è presente, e viene allo stesso modo propagato da
 \texttt{LinearInterpolation} se uno dei due valori spazialmente risolti è assente.
+\fi
+Le strategie decidono anche il trattamento dei valori mancanti: \texttt{BilinearInterpolation},
+ad esempio, propaga \texttt{NaN} se manca almeno uno dei quattro campioni, e
+\texttt{LinearInterpolation} fa lo stesso se manca uno dei due valori risolti.
 
 La verifica che la posizione richiesta ricada entro l'estensione coperta dalle
 griglie è compito del layer, e precede l'invocazione della strategia.
@@ -303,11 +320,15 @@ concetto di layer temporale: un layer per dati Copernicus è un'implementazione 
 \subsection{La corrispondenza temporale}
 \label{sec:corrispondenza-temporale}
 
+\iffalse
 Il layer deve mettere in relazione due domini temporali di natura diversa: il tempo
 di simulazione, che legge dall'environment quando viene interrogato, e gli istanti
 del mondo reale a cui sono riferite le griglie della serie che espone. La
 Sezione~\ref{subsec:corrispondenza-temporale} ha stabilito che tale corrispondenza vada
 confinata nel solo componente che ne ha bisogno, ed è quindi il layer a ospitarla.
+\fi
+Come stabilito nella \Cref{subsec:corrispondenza-temporale}, la corrispondenza fra tempo
+di simulazione e istanti del mondo reale è confinata nel componente che ne ha bisogno: il layer.
 
 La corrispondenza è definita da due soli parametri: un'\emph{origine}, l'istante
 reale a cui corrisponde lo zero del tempo di simulazione, e una \emph{scala}, la
@@ -373,6 +394,15 @@ le entità con cui interagisce nel corso di una singola interrogazione.
     \label{fig:layer-sequenza}
 \end{figure}
 
+Il layer legge il tempo di simulazione dall'environment (\Cref{subsec:layer-pull-based}) e individua,
+sull'asse temporale della serie già espresso in tempo di simulazione, i due campioni che
+lo racchiudono e le griglie corrispondenti. Verifica poi che la posizione ricada nella
+regione coperta, respingendo la richiesta in caso contrario (\Cref{subsec:estensione-spaziale}, \req{NF5}), calcola
+il peso temporale e delega alla strategia di interpolazione la produzione del valore (\req{F4})
+e al convertitore la sua traduzione nel tipo esposto (\req{F6}). Nessuno di questi passi accede
+a risorse esterne (\req{NF7}).
+
+\iffalse
 La lettura del tempo di simulazione dall'environment attua la semantica discussa nella
 Sezione~\ref{subsec:layer-pull-based}: è il layer a procurarselo al momento
 dell'interrogazione, e non un evento esterno a comunicarglielo. L'istante così ottenuto
@@ -397,6 +427,7 @@ campioni adiacenti (\req{F4}) e la sua traduzione nel tipo esposto ai nodi (\req
 Nessuno di questi passi accede a risorse esterne, come \req{NF7} richiede: la serie di
 griglie è già residente in memoria, e la corrispondenza temporale è stata fissata alla
 costruzione.
+\fi
 
 \subsection{Le modalità di costruzione}
 \label{subsec:layer-costruzione}
@@ -460,6 +491,7 @@ realizzazioni.
 \subsection{Le astrazioni}
 \label{subsec:acquisizione-astrazioni}
 
+\iffalse
 Il sottosistema è costruito su tre astrazioni, corrispondenti alle entità individuate nel
 modello del dominio:
 
@@ -476,10 +508,17 @@ modello del dominio:
     cartella contenente i dati corrispondenti, interpellando la fonte esterna solo quando
     non siano già disponibili localmente.
 \end{itemize}
+\fi
+Il sottosistema è costituito dalle tre entità di acquisizione del modello del
+dominio (\Cref{sec:modello-dominio}), precisandone il contratto: una \texttt{CacheKey}
+deve sapersi tradurre deterministicamente in un nome di cartella; un
+\texttt{ExternalDataProvider<R>} deposita i file in una cartella indicata dal chiamante,
+senza vincoli sul modo o sul formato; un \texttt{CacheManager<R>} restituisce la cartella
+corrispondente a una descrizione.
 
-Tutte e tre sono parametriche nel tipo della descrizione, vincolato a essere una
-\texttt{CacheKey}. Il parametro è ciò che garantisce staticamente che un
-gestore di cache e la fonte a cui esso si rivolge accettino la stessa descrizione, senza
+Fonte e gestore della cache sono parametrici nel tipo della descrizione, vincolato a essere una
+\texttt{CacheKey}. Il parametro è ciò che garantisce staticamente che
+questi componenti accettino la stessa descrizione, senza
 che tale coerenza debba essere verificata a tempo di esecuzione.
 
 \subsection{L'indipendenza dalla fonte}
@@ -489,26 +528,15 @@ Il gestore della cache, \texttt{FileSystemCacheManager<R>}, è indipendente dall
 fonte. Il suo compito consiste nel risolvere il nome della cartella a partire dalla
 descrizione, verificarne l'esistenza, e in caso contrario invocare la fonte e conservarne
 il risultato nel file system: nessuna di queste operazioni richiede di sapere se i dati
-provengano da un data store Copernicus, da un servizio di estrazione cartografica o da
-qualunque altra sorgente. Le uniche realizzazioni che conoscono i data store Copernicus
+provengano da un data store Copernicus o da un'altra fonte.
+Le uniche realizzazioni che conoscono i data store Copernicus
 sono \texttt{CopernicusRequest}, che descrive una richiesta verso di essi, e
 \texttt{CopernicusDataStoreProvider}, che la soddisfa dialogando con il servizio remoto
 secondo il paradigma descritto nella Sezione~\ref{sec:ogc-api-processes}.
 
-È questa suddivisione a rendere effettivo \req{NF2}. In questo modo il sistema
-di acquisizione può essere facilmente esteso per supportare altre fonti di dati;
-ad esempio, per il recupero
-di estratti cartografici da OpenStreetMap, necessario a popolare un
-\texttt{OSMEnvironment} (Sezione~\ref{subsec:alchemist-osm}): un servizio di questo tipo
-non condivide con i data store Copernicus né il formato dei dati consegnati né il
-protocollo con cui la richiesta viene formulata.
-Estendere il sottosistema per accoglierlo richiederebbe tuttavia di
-realizzare soltanto la coppia \texttt{CacheKey} ed \texttt{ExternalDataProvider<R>}
-corrispondente, senza modificare né il gestore della cache né alcuna delle parti già
-descritte.
-
-Come il gestore della cache riesce a soddisfare il requisito \req{NF8} è descritto
-nel Capitolo~\ref{chap:implementazione}.
+È questa suddivisione a rendere effettivo \req{NF2}: una fonte diversa,
+anche con formato e protocollo differenti, richiede soltanto una nuova coppia
+\texttt{CacheKey} ed \texttt{ExternalDataProvider<R>}, senza modificare il gestore della cache.
 
 \subsection{L'identità di una richiesta}
 \label{subsec:acquisizione-identita}
@@ -525,6 +553,8 @@ data store condividono la stessa infrastruttura ma non il catalogo, e ogni datas
 una selezione di parametri propria; imporre una struttura fissa avrebbe limitato
 il modulo all'utilizzo di pochi dataset, in contrasto con \req{F8}.
 
+\iffalse
 Nel Capitolo~\ref{chap:implementazione} viene discusso come la selezione dei parametri
 viene rappresentata e il modo in cui l'identità della richiesta viene tradotta
 deterministicamente nel nome di una cartella in cache.
+\fi

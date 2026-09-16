@@ -390,7 +390,7 @@ prese altrove vengono applicate nell'ordine corretto.
 La \Cref{fig:layer-sequenza} riporta la distribuzione delle responsabilità fra il layer e 
 le entità con cui interagisce nel corso di una singola interrogazione.
 
-\begin{figure}[H]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\linewidth]{figures/progettazione/sequenza_layer.png}
     \caption[Interrogazione del layer]{Le interazioni fra il layer e le entità con cui collabora quando gli viene richiesto un valore.}
@@ -404,6 +404,8 @@ regione coperta, respingendo la richiesta in caso contrario (\Cref{subsec:estens
 il peso temporale e delega alla strategia di interpolazione la produzione del valore (\req{F4})
 e al convertitore la sua traduzione nel tipo esposto (\req{F6}). Nessuno di questi passi accede
 a risorse esterne (\req{NF7}).
+
+\FloatBarrier
 
 \subsection{La costruzione da serie, cartella o data store}
 \label{subsec:layer-costruzione}
@@ -460,7 +462,7 @@ servizio remoto in modo riproducibile, senza riscaricarli a ogni esecuzione
 (\req{F9}, \req{F10}). La \Cref{fig:uml-acquisizione} ne riporta le astrazioni e le
 realizzazioni.
 
-\begin{figure}[H]
+\begin{figure}[t]
     \centering
     \includegraphics[width=0.9\linewidth]{figures/progettazione/acquisizione.png}
     \caption[Il sottosistema di acquisizione]{Le astrazioni per la cache e per l'accesso a

@@ -104,6 +104,7 @@ Il \Cref{lst:permutazione} riporta le due normalizzazioni, che avvengono una sol
 costruzione della serie, e consentono al resto del modulo di ignorare lo schema originale.
 
 \lstinputlisting[
+    float,
     language=Kotlin,
     label={lst:permutazione},
     caption={[Lettura di una variabile da un file geospaziale]Lettura di una porzione e suo appiattimento in ordine crescente.}
@@ -138,6 +139,7 @@ interesse, indicarne il nome sarebbe ridondante, e il parametro è per questo fa
 Il \Cref{lst:resolve-variable} riporta i due criteri.
 
 \lstinputlisting[
+    float,
     language=Kotlin,
     label={lst:resolve-variable},
     caption={Selezione della variabile da estrarre.}
@@ -267,6 +269,7 @@ con \texttt{other::class}.
 Il \Cref{lst:trilinear} mostra la classe in uso in \texttt{TrilinearInterpolation}.
 
 \lstinputlisting[
+    float,
     language=Kotlin,
     label={lst:trilinear},
     caption={L'interpolazione trilineare per delegazione.}
@@ -374,10 +377,7 @@ caricamento non sa costruire, ovvero \texttt{Path}, \texttt{Instant} e \texttt{D
 sono pertanto dichiarati come stringhe e convertiti all'interno del costruttore.
 
 La durata e l'istante sono convertiti secondo il formato definito dallo standard ISO
-8601~\cite{iso8601}, compatto e convertibile senza ambiguità. Ad esempio, un istante può
-essere scritto come \texttt{2002-09-30T00:00:00Z} mentre una durata come \texttt{PT6H}. La
-conversione nel costruttore ha inoltre l'effetto di rilevare nel caricamento
-valori non validi, coerentemente con \req{NF6}.
+8601~\cite{iso8601}, compatto e convertibile senza ambiguità.
 
 Il terzo costruttore riceve la descrizione di come ottenere i dati. Quattro argomenti sono
 obbligatori: il data store da interpellare, il dataset, la collocazione del file contenente
@@ -424,10 +424,8 @@ che non la collocazione della cache.
 L'environment, dichiarato da ciascuno dei tre, non compare invece fra gli argomenti della
 configurazione YAML, essendo iniettato automaticamente.
 
-Il \Cref{lst:yaml} mostra un esempio della forma finale assunta dal layer dal punto di vista di chi
-conduce una simulazione (\req{F11}). Si noti che
-gli argomenti successivi all'interpolazione sono omessi e assumono quindi i propri
-valori di default.
+Il \Cref{lst:yaml} mostra un esempio della forma assunta dal layer in un file di configurazione (\req{F11}).
+Gli argomenti omessi assumono i valori di default.
 
 \lstinputlisting[
     language=yaml,
@@ -472,11 +470,11 @@ lista è semantico, come nel caso di una sequenza di coordinate; ogni altro
 valore è restituito invariato. Il metodo \texttt{encode} serializza infine il risultato nella rappresentazione
 JSON corrispondente, che per
 costruzione è lo stesso per selezioni equivalenti ma con diverso ordine.
- 
 Il \Cref{lst:coper-req} mostra come \texttt{CopernicusRequest} traduca l'identità in un nome
 di cartella.
 
 \lstinputlisting[
+    float,
     language=Kotlin,
     label={lst:coper-req},
     caption={Derivazione del nome della cartella di cache.}
@@ -687,6 +685,7 @@ In entrambi i casi il messaggio mostrato al modellista è prodotto da \texttt{de
 riportata nel \Cref{lst:problem-detail}.
  
 \lstinputlisting[
+    float,
     language=Kotlin,
     label={lst:problem-detail},
     caption={[Ricostruzione del fallimento di una richiesta]Ricostruzione della causa di un fallimento dal corpo della risposta.}

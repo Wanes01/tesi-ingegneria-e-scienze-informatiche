@@ -241,10 +241,9 @@ che il tempo di simulazione corrente $t_s \in [t_i, t_{i+1}]$, \Cref{fig:temp-in
 E in modo del tutto analogo,
 quando la posizione richiesta cade fra le celle della griglia spaziale; formalmente,
 quale valore restituire per la posizione $P = (\text{lat}_{a}, \text{lon}_{b})$ quando
-$\text{lat}_{a} \in [\text{lat}_{i}, \text{lat}_{i+1}]$ e $\text{lon}_{b} \in [\text{lon}_{j}, \text{lon}_{j+1}]$
-, \Cref{fig:spatial-interp}.
+$\text{lat}_{a} \in [\text{lat}_{i}, \text{lat}_{i+1}]$ e $\text{lon}_{b} \in [\text{lon}_{j}, \text{lon}_{j+1}]$, \Cref{fig:spatial-interp}.
 
-\begin{figure}[H]
+\begin{figure}[th]
     \centering
     \includegraphics[width=0.5\linewidth]{figures/spatial_interpolation.png}
     \caption[Composizione spaziale dei campioni]{La posizione richiesta ricade tra le misurazioni. I cerchi pieni rappresentano misurazioni disponibili,
@@ -266,6 +265,8 @@ di cui \req{F7} chiede un trattamento esplicito: se una posizione richiesta è
 circondata anche da un solo campione assente, non esiste una risposta valida per ogni
 grandezza, e la decisione se propagare l'assenza, ignorarla o convertirla ricade nuovamente
 sulla semantica del dato.
+
+\FloatBarrier
 
 \subsection{Richieste fuori dalla copertura dei dati}
 \label{subsec:estensione-spaziale}

@@ -9,7 +9,7 @@ ovvero quelli in cui il formato dei dati, il protocollo dei servizi remoti o il 
 di caricamento di Alchemist hanno imposto una forma particolare.
 \fi
 
-\section{La lettura dei dati}
+\section{La lettura dei file NetCDF e GRIB}
 \label{sec:rappresentazione-impl}
 
 La lettura di \ac{NetCDF} e \ac{GRIB} è delegata alla libreria NetCDF-Java~\cite{netcdfjava},
@@ -154,7 +154,7 @@ tutti i criteri (\req{NF5}).
 
 Se viene correttamente identificata una sola variabile, \texttt{single} restituisce quest'ultima.
 
-\subsection{La costruzione della serie}
+\subsection{La fusione dei file in un'unica serie}
 \label{subsec:serie-impl}
 
 La realizzazione della serie legge tutti i file di una cartella e li fonde in un'unica
@@ -193,10 +193,10 @@ e le griglie lette da \texttt{readTimestepsFrom} confluiscono nella \texttt{Tree
 Alla fine delle operazioni di lettura, chiavi e valori della mappa diventano gli
 istanti e le griglie della serie, già ordinati.
 
-\section{Le strategie di risoluzione}
+\section{Il supporto comune alle strategie}
 \label{sec:strategie-impl}
 
-\subsection{La ricerca sugli assi}
+\subsection{La ricerca binaria e l'estrapolazione costante}
 \label{subsec:ricerca-impl}
 
 Le tre operazioni di cui le strategie e il layer hanno bisogno sono raccolte in un unico
@@ -236,7 +236,7 @@ degli assi spaziali è garantita dalla costruzione delle griglie; la monotonia d
 temporale è garantita invece dalla costruzione della serie. Inoltre,
 tale controllo porterebbe a costo lineare un'operazione altrimenti logaritmica.
 
-\subsection{Uguaglianza fra le strategie}
+\subsection{L'uguaglianza delle strategie senza stato}
 \label{subsec:composizione-impl}
 
 Le strategie prive di configurazione, come \texttt{BilinearInterpolation} o
@@ -279,10 +279,10 @@ La classe \texttt{TrilinearInterpolation} estende \texttt{StatelessStrategy} e i
 ereditata resta corretta anche qui, perché la configurazione è stabilita dalla classe stessa
 e non può variare fra un'istanza e l'altra.
 
-\section{Il layer}
+\section{La lettura e la costruzione del layer}
 \label{sec:layer-impl}
 
-\subsection{La corrispondenza temporale}
+\subsection{La conversione degli istanti della serie}
 \label{subsec:corrispondenza-impl}
 
 La corrispondenza fra i due domini temporali è stabilita alla costruzione del layer, come
@@ -310,10 +310,10 @@ esattamente il tempo di simulazione cercato.
 Il risultato è conservato in un \texttt{DoubleArray}, sul quale opera la ricerca della
 Sezione~\ref{subsec:ricerca-impl}.
 
-\subsection{L'interrogazione}
+\subsection{La risoluzione di un valore per una posizione}
 \label{subsec:interrogazione-impl}
 
-L'interrogazione segue la sequenza della \Cref{fig:layer-sequenza}, e il
+La risoluzione segue la sequenza della \Cref{fig:layer-sequenza}, e il
 \Cref{lst:layer-get-value} ne riporta la realizzazione.
 
 \lstinputlisting[
@@ -325,7 +325,7 @@ L'interrogazione segue la sequenza della \Cref{fig:layer-sequenza}, e il
 La prima istruzione di \texttt{getValue} legge il tempo di simulazione corrente. Il tempo
 non è però sempre disponibile (Sezione~\ref{subsec:alchemist-time}): la simulazione esiste
 solo dopo che il modello è stato costruito, e \texttt{simulationOrNull} restituisce
-\texttt{null} se il layer viene interrogato prima. In tal si assume lo zero,
+\texttt{null} se il layer viene interrogato prima. In tal caso si assume lo zero,
 ovvero il valore che la simulazione esporrebbe non appena costruita.
  
 \texttt{bracketIndices} restituisce poi gli indici dei due campioni di \texttt{sliceTimes}
@@ -344,7 +344,7 @@ nota direttamente la separazione fra la produzione del valore numerico e la sua 
 nel tipo esposto. La verifica dei limiti spaziali avviene sulla sola \texttt{gridBefore}, poiché
 l'omogeneità degli assi spaziali è accertata alla costruzione della serie.
 
-\subsection{I costruttori e la configurazione}
+\subsection{I costruttori e i vincoli del caricamento}
 \label{subsec:costruttori-impl}
 
 Alle tre modalità di costruzione descritte nella Sezione~\ref{subsec:layer-costruzione} corrispondono
@@ -446,10 +446,10 @@ servizio ed è riportato nel \Cref{lst:inputs}.
 ]{listings/implementazione/2mt.json}
 \fi
 
-\section{Il sottosistema di acquisizione}
+\section{La cache locale e il client dei data store}
 \label{sec:acquisizione-impl}
 
-\subsection{L'identità di una richiesta}
+\subsection{Dalla richiesta al nome della cartella di cache}
 \label{subsec:nome-cartella-impl}
 
 L'identità di una richiesta è
@@ -497,7 +497,7 @@ cache, mentre le cifre del digest ne stabiliscono l'identità. La lunghezza scel
 a 64 bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
 trascurabile.
 
-\subsection{L'atomicità della cache}
+\subsection{La produzione atomica delle voci di cache}
 \label{subsec:atomicita-impl}
 
 Il requisito \req{NF8} richiede che una voce di cache non sia mai osservabile in stato
@@ -573,10 +573,10 @@ le risposte e confrontandole con il codice del client ufficiale distribuito da
 ECMWF. Il modulo confina l'intero dialogo in
 \texttt{CopernicusDataStoreProvider}, che è l'unico punto in cui la struttura del protocollo
 è nota.
- 
+
 Una richiesta viene sottomessa in \texttt{POST} al percorso di esecuzione del processo, che
 lo standard definisce come \texttt{/processes/\{processID\}/execution}. I data store lo
-precedono con un prefisso proprio, assieme dall'indirizzo del data store
+precedono con un prefisso proprio, assieme all'indirizzo del data store
 ricevuto dal layer come \texttt{endpoint}, e assegnano al \emph{processID} il nome del
 dataset richiesto. Il corpo della richiesta contiene la sola selezione dei parametri,
 associata alla chiave \texttt{inputs}. L'identità dell'utente viaggia nell'intestazione
@@ -661,7 +661,7 @@ la verifica di quest'ultimo è stata resa disattivabile, così che un'anomalia d
 questo tipo non impedisca di eseguire una simulazione con dati validi. La dimensione,
 unico controllo che il client ufficiale effettua, resta invece sempre verificata.
 
-\subsection{Le modalità di fallimento}
+\subsection{La ricostruzione della causa di un fallimento}
 \label{subsec:fallimenti-impl}
 
 Un tentativo di acquisizione può fallire in due modi distinti, che il servizio segnala in

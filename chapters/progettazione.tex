@@ -1,10 +1,10 @@
 \chapter{Progettazione}
 \label{chap:progettazione}
 
-\section{Architettura}
+\section{Architettura e scelte trasversali}
 \label{sec:architettura-generale}
 
-\subsection{I sottomoduli}
+\subsection{La suddivisione in quattro sottomoduli}
 \label{subsec:aree-modulo}
 
 Il modulo è organizzato nei seguenti sottomoduli.
@@ -70,7 +70,7 @@ operazioni aritmetiche, una proprietà che può essere utile nelle regole di ris
 si sceglie di lasciar propagare questo valore fino al convertitore, il quale decide cosa
 esporre (Sezione~\ref{subsec:conversione}).
 
-\section{Rappresentazione dei dati raster e delle serie temporali}
+\section{Rappresentazione di griglie e serie temporali}
 \label{sec:rappresentazione}
 
 Questa sezione descrive le astrazioni che danno forma in memoria alle entità
@@ -85,7 +85,7 @@ Questa sezione descrive le astrazioni che danno forma in memoria alle entità
     \label{fig:uml-rappresentazione}
 \end{figure}
 
-\subsection{La griglia raster}
+\subsection{La memorizzazione densa o sparsa delle griglie}
 \label{subsec:raster-grid}
 
 Una griglia raster è definita da due assi indipendenti, di latitudini e di longitudini, e
@@ -115,7 +115,7 @@ La distinzione tra le due è invisibile a chi usa la griglia:
 chi vi accede vede unicamente il tipo \texttt{RasterGrid}, e le due realizzazioni
 differiscono solo per il compromesso fra memoria occupata e costo di accesso.
 
-\subsection{La serie temporale di griglie}
+\subsection{Il caricamento anticipato della serie}
 \label{subsec:grid-snapshots}
 
 \texttt{GridSnapshots} descrive una successione di griglie omogenee, ciascuna associata a
@@ -167,7 +167,7 @@ del layer non può essere unica. Questa sezione ne descrive la realizzazione com
 famiglia di strategie~\cite{gof1994} e la estende alla traduzione del valore nel tipo
 esposto ai nodi, richiesta da \req{F6}.
 
-\subsection{Le strategie di interpolazione}
+\subsection{Interpolazioni separabili e non separabili}
 \label{subsec:interpolazione}
 
 \iffalse
@@ -272,7 +272,7 @@ con un possibile ripiego su un valore prestabilito nel caso il dato sia mancante
 Come per \texttt{TrilinearInterpolation}, il suo comportamento viene delegato
 poiché è una configurazione fissata a cui si dà un nome, e non una specializzazione della logica.
 
-\section{Il layer Copernicus}
+\section{Il layer come punto di composizione}
 \label{sec:layer}
 
 Il layer è il punto in cui i sottomoduli precedenti vengono composti. La
@@ -285,7 +285,7 @@ Il layer è il punto in cui i sottomoduli precedenti vengono composti. La
     \label{fig:aggr-layer}
 \end{figure}
 
-\subsection{La semantica di interrogazione}
+\subsection{Il tempo letto a ogni interrogazione}
 \label{subsec:layer-pull-based}
 
 Il requisito \req{F2} chiede che il valore restituito sia quello percepito all'istante di
@@ -370,7 +370,7 @@ ad alcun'altra parte del simulatore, che continua a operare su un tempo scalare,
 modifiche richieste da un'eventuale futura migrazione del tipo di tempo di Alchemist
 resterebbero circoscritte a un unico punto del modulo.
 
-\subsection{Collocazione nella gerarchia e responsabilità}
+\subsection{La gerarchia e il flusso di un'interrogazione}
 \label{subsec:layer-gerarchia}
 
 Fra l'interfaccia \texttt{Layer<T, P>} di Alchemist e la realizzazione concreta è
@@ -405,7 +405,7 @@ il peso temporale e delega alla strategia di interpolazione la produzione del va
 e al convertitore la sua traduzione nel tipo esposto (\req{F6}). Nessuno di questi passi accede
 a risorse esterne (\req{NF7}).
 
-\subsection{Le modalità di costruzione}
+\subsection{La costruzione da serie, cartella o data store}
 \label{subsec:layer-costruzione}
 
 Il layer prevede tre modalità di costruzione, ordinate per ampiezza decrescente di ciò che
@@ -441,7 +441,7 @@ della simulazione: è quindi lì che si manifesta ogni condizione che impedisca
 alla simulazione di disporre dei dati di cui ha bisogno, come \req{NF6} richiede.
 \fi
 In tutte le modalità, l'acquisizione e lettura dei dati avvengono durante
-la costruzione del layer, ed è quindi li che si manifestano condizioni
+la costruzione del layer, ed è quindi lì che si manifestano condizioni
 che possono impedire alla simulazione di disporre dei dati necessari (\req{NF6}).
 
 La classe \texttt{CopernicusLayer<T>} è generica nel tipo esposto; il modulo fornisce anche
@@ -468,7 +468,7 @@ realizzazioni.
     \label{fig:uml-acquisizione}
 \end{figure}
 
-\subsection{Le astrazioni}
+\subsection{I contratti di chiave, fonte e gestore della cache}
 \label{subsec:acquisizione-astrazioni}
 
 \iffalse

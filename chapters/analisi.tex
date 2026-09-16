@@ -190,7 +190,7 @@ i cui componenti siano dichiarabili direttamente nella configurazione di una sim
 \section{Analisi dei requisiti}
 \label{sec:analisi-requisiti}
 
-\subsection{La corrispondenza fra i domini temporali}
+\subsection{Tempo di simulazione e tempo reale}
 \label{subsec:corrispondenza-temporale}
 
 Il requisito \req{F3} chiede di mettere in relazione due domini temporali di natura
@@ -223,7 +223,7 @@ seconda strada: mantenere inalterato il tipo di tempo del simulatore e stabilire
 corrispondenza fra i due domini nel solo componente che ne ha bisogno, dichiarata da chi
 configura la simulazione come \req{F3} richiede.
 
-\subsection{La discretezza dei campioni}
+\subsection{Il valore fra campioni adiacenti}
 \label{subsec:discretezza-campioni}
 
 Risolta la corrispondenza temporale, resta il problema posto da \req{F4}: quale valore
@@ -267,7 +267,7 @@ circondata anche da un solo campione assente, non esiste una risposta valida per
 grandezza, e la decisione se propagare l'assenza, ignorarla o convertirla ricade nuovamente
 sulla semantica del dato.
 
-\subsection{Il dominio di definizione del layer}
+\subsection{Richieste fuori dalla copertura dei dati}
 \label{subsec:estensione-spaziale}
 
 I requisiti \req{F1} e \req{F2} sono formulati su una posizione geografica e un istante di
@@ -307,7 +307,7 @@ Il layer resta quindi definito sull'intero asse temporale, e la regola con cui
 produce un valore al di fuori dell'intervallo coperto è discussa nella
 Sezione~\ref{sec:corrispondenza-temporale}.
 
-\subsection{Le ipotesi sui dati utilizzati}
+\subsection{Le ipotesi sui dataset supportati}
 \label{subsec:griglie-supportate}
 
 Il requisito \req{F8} chiede che il modulo operi, con lo stesso codice, su dataset diversi
@@ -345,7 +345,7 @@ Sul dominio temporale non viene invece posta alcuna ipotesi oltre alla distinzio
 all'ordinamento degli istanti: l'ampiezza degli intervalli che li separano può variare
 liberamente lungo la serie.
 
-\subsection{Il momento del fallimento}
+\subsection{Il fallimento al caricamento della simulazione}
 \label{subsec:momento-del-fallimento}
 
 L'acquisizione dei dati da un servizio remoto, richiesta da \req{F9}, è l'unica parte del

@@ -26,7 +26,7 @@ nel tempo. Il metamodello è mostrato nella \Cref{fig:metamodel}.
 
 Alchemist è impiegato come strumento in diversi lavori di ricerca.
 Ad esempio, in~\cite{aguzzi2022dynamic} è stato usato per simulare, sull'area urbana di Toronto,
-un sistema \ac{IoT} decentralizzato di allerta alluvionale: i valori di pioggia
+un sistema \acp{IoT} decentralizzato di allerta alluvionale: i valori di pioggia
 misurati da una rete di pluviometri, ricavata da dati reali, vengono aggregati
 in modo distribuito per pre-allertare le stazioni dei vigili del fuoco prossime alle
 zone a rischio. In~\cite{audrito2021optimal} il simulatore costituisce invece l'intero
@@ -38,7 +38,7 @@ al tracciamento di una folla in un parco cittadino.
 Le sezioni che seguono si limitano agli elementi necessari a collocare il lavoro
 descritto in questa tesi.
 
-\subsection{Il motore di simulazione}
+\subsection{Il motore a eventi discreti}
 \label{subsec:alchemist-lifecycle}
 
 Una simulazione Alchemist nasce da una configurazione dichiarativa
@@ -60,7 +60,7 @@ corrente ed espone i comandi per avviare, sospendere e arrestare l'esecuzione. L
 in cui essa si trova è descritto da un insieme predefinito di valori, dall'inizializzazione
 alla terminazione, ed è interrogabile in qualunque momento.
 
-\subsection{Il concetto di \emph{layer}}
+\subsection{Il \emph{layer} come funzione della posizione}
 \label{subsec:alchemist-layer}
 
 \iffalse
@@ -143,7 +143,7 @@ un simulatore capace di collocare e muovere con precisione i propri nodi nello s
 non dotato di un modo per far percepire loro misurazioni campionate nello spazio.
 \fi
 
-\subsection{Il caricamento delle simulazioni da YAML}
+\subsection{Il caricamento da YAML e i vincoli sui costruttori}
 \label{subsec:alchemist-loader}
 
 Una simulazione Alchemist si specifica tipicamente in modo dichiarativo, in un file YAML
@@ -223,7 +223,7 @@ L'istanza risultante viene registrata, nell'environment, in corrispondenza della
 indicata dalla chiave \texttt{molecule} (\texttt{moleculeName}).
 \fi
 
-\section{Il programma Copernicus e i suoi servizi di dati}
+\section{Copernicus e i \emph{data store} ECMWF}
 \label{sec:copernicus}
 
 Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
@@ -275,7 +275,7 @@ generale: quale delle due forme venga consegnata dipende dal dataset e dalla sel
 effettuata. Il formato dei file contenuti, fra quelli descritti nella
 Sezione~\ref{sec:formati-raster}, è invece scelto dall'utente.
 
-\section{Formati e convenzioni per dati raster geospaziali}
+\section{Formati e convenzioni dei dati raster}
 \label{sec:formati-raster}
 
 I dataset offerti dai tre data store descritti precedentemente sono forniti,

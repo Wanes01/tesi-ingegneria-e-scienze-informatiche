@@ -402,33 +402,6 @@ il peso temporale e delega alla strategia di interpolazione la produzione del va
 e al convertitore la sua traduzione nel tipo esposto (\req{F6}). Nessuno di questi passi accede
 a risorse esterne (\req{NF7}).
 
-\iffalse
-La lettura del tempo di simulazione dall'environment attua la semantica discussa nella
-Sezione~\ref{subsec:layer-pull-based}: è il layer a procurarselo al momento
-dell'interrogazione, e non un evento esterno a comunicarglielo. L'istante così ottenuto
-viene ricondotto al dominio temporale dei dati secondo la corrispondenza fissata alla
-costruzione, individuando i due campioni
-temporali che lo racchiudono e, con essi, le griglie corrispondenti (\req{F3}).
-
-Disponendo delle griglie, il layer può verificare che la posizione richiesta ricada nella
-regione da esse coperta. La verifica attua la delimitazione stabilita nella
-Sezione~\ref{subsec:estensione-spaziale}: una posizione esterna non individua alcuna
-misura, e la richiesta viene respinta anziché produrre un valore plausibile ma infondato
-(\req{NF5}).
-
-Superata la verifica, il layer calcola il peso temporale, che esprime la posizione relativa
-dell'istante richiesto fra le due griglie nella forma attesa dalla strategia di
-interpolazione.
-
-Le due deleghe finali affidano a componenti esterni al layer le decisioni che dipendono
-dalla semantica della grandezza esposta: la produzione del valore numerico a partire dai
-campioni adiacenti (\req{F4}) e la sua traduzione nel tipo esposto ai nodi (\req{F6}).
-
-Nessuno di questi passi accede a risorse esterne, come \req{NF7} richiede: la serie di
-griglie è già residente in memoria, e la corrispondenza temporale è stata fissata alla
-costruzione.
-\fi
-
 \subsection{Le modalità di costruzione}
 \label{subsec:layer-costruzione}
 

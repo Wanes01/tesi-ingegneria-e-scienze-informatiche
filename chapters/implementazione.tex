@@ -163,9 +163,6 @@ Il \Cref{lst:eager-init} riporta la costruzione.
 \subsection{La ricerca sugli assi}
 \label{subsec:ricerca-impl}
 
-Come discusso in Sezione~\ref{subsec:griglie-supportate}, gli assi devono essere conservati
-per intero e l'individuazione di una cella comporta la ricerca delle sue coordinate.
-
 Le tre operazioni di cui le strategie e il layer hanno bisogno sono raccolte in un unico
 file di funzioni interne: l'individuazione dell'indice più vicino a una coordinata, quella
 della coppia di indici che la racchiude, e il calcolo del peso che ne esprime la posizione
@@ -465,8 +462,9 @@ Il \Cref{lst:cache-manager} riporta la produzione e la pubblicazione di una voce
 
 Il dialogo con i data store segue il paradigma descritto nella
 Sezione~\ref{sec:ogc-api-processes}. Diversi aspetti del suo comportamento concreto non
-compaiono però nella documentazione dei servizi, e sono stati ricostruiti
-sperimentalmente, osservando le risposte del servizio e confrontandole con il codice del
+compaiono però nella documentazione dei servizi, i quali
+espongono solo lo schema delle risposte e non come vengono popolate, e sono stati ricostruiti
+sperimentalmente, osservando le risposte e confrontandole con il codice del
 client ufficiale distribuito da ECMWF. Quest'ultimo è
 scritto in Python, e non nei linguaggi impiegati nel simulatore (Java e Kotlin), 
 è stato quindi adoperato
@@ -494,9 +492,9 @@ dall'identificativo. Le fasi successive procedono
 allo stesso modo, seguendo il collegamento di monitoraggio durante l'attesa e 
 quello dei risultati a completamento avvenuto.
 
-Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso.
-Ciò avviene poiché la documentazione dei servizi non ne fornisce l'elenco, e il client ufficiale stesso lo
-tratta come stringa. Il modulo li ripartisce in tre categorie:
+Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso,
+come fa anche il client ufficiale, così che uno stato non previsto produca un avviso
+al posto di interrompere l'attesa. Il modulo li ripartisce in tre categorie:
 
 \begin{itemize}
     \item \texttt{successful}, unico stato di successo, dopo il quale il collegamento ai
@@ -568,8 +566,8 @@ maggiormente dal protocollo descritto nella Sezione~\ref{sec:ogc-api-processes}.
 Il primo è un errore a livello di protocollo, segnalato da un codice di stato di errore e
 accompagnato da un corpo conforme all'RFC 7807~\cite{rfc7807}. La convenzione prevede che
 la spiegazione leggibile risieda nel campo \texttt{detail}; i data store, però, lo popolano
-solo in parte, e collocano la traccia di esecuzione in \texttt{traceback}, campo di loro
-invenzione. Il client dà quindi la precedenza a \texttt{detail}, ripiega su
+solo in parte, e collocano la traccia di esecuzione in \texttt{traceback}, un membro di estensione
+che la RFC consente. Il client dà quindi la precedenza a \texttt{detail}, ripiega su
 \texttt{traceback} e, in mancanza di entrambi, sul titolo del problema.
 
 Il secondo è il fallimento dell'elaborazione: qui il protocollo ha successo, la risposta ha

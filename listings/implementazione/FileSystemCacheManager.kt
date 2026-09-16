@@ -7,7 +7,7 @@ private fun produce(request: R, cacheKey: String, finalDir: Path): Path {
         promoted = promote(temp, finalDir)
         return finalDir
     } finally {
-        // deletes the temp directory if any accident occurred
+        // unless promoted, the temp directory is deleted: after a failure or a lost race
         if (!promoted) { /* ... */ }
     }
 }

@@ -4,10 +4,12 @@
 \section{Analisi del problema}
 \label{sec:analisi-problema}
 
+\iffalse
 Come anticipato nella Sezione~\ref{subsec:alchemist-osm}, il supporto geospaziale di
 Alchemist consente di collocare e muovere con precisione i nodi di una simulazione su
 cartografia reale, ma non offre un modo altrettanto maturo per esporre loro dati geospaziali,
 in un dato istante, nel punto dello spazio geografico in cui si trovano.
+\fi
 L'interfaccia \texttt{Layer<T, P>} (Sezione~\ref{subsec:alchemist-layer}) è generica sia
 nella posizione \texttt{P} sia nel valore \texttt{T} restituito, ma nessuna delle sue
 implementazioni preesistenti espone dati che rappresentino misurazioni del mondo reale.
@@ -21,7 +23,7 @@ implementazioni preesistenti per diversi aspetti:
     Sezione~\ref{sec:formati-raster}), il cui schema (quali dimensioni compaiano, in quale
     ordine, con quale direzione degli assi, con quale nome interno la grandezza di interesse
     sia identificata) non è fissato a priori, ma varia da dataset a dataset;
-    \item sono campionati su una griglia sia nello spazio sia nel tempo, mentre la
+    \item sono campionati sia nello spazio sia nel tempo, mentre la
     posizione richiesta a un layer e l'istante di simulazione corrente sono entrambi
     quantità continue: fra un campione e l'altro non esiste, nel dato
     originale, alcun valore, e va quindi stabilita una regola per produrne uno;
@@ -144,8 +146,7 @@ i cui componenti siano dichiarabili direttamente nella configurazione di una sim
 
     \item \textbf{F11 (Configurazione dichiarativa)}: \label{req:F11} il modulo deve essere
     configurabile da un file YAML di simulazione (Sezione~\ref{subsec:alchemist-loader})
-    senza richiedere obbligatoriamente la scrittura di codice; ciò vale anche per la scelta
-    fra le alternative previste da \req{F5}.
+    senza richiedere obbligatoriamente la scrittura di codice.
 \end{itemize}
 
 \subsection{Requisiti non funzionali}
@@ -260,12 +261,8 @@ campione secondo un criterio esplicito, ad esempio il campione spazialmente più
 La scelta dipende dalla semantica del dato, non dal meccanismo che lo espone, e non può
 quindi essere fissata una volta per tutte nel codice del modulo.
 
-È questa osservazione a motivare \req{F5}: la regola con cui un valore viene prodotto a
-partire dai campioni disponibili, sia temporali sia spaziali, deve essere configurabile e
-intercambiabile.
-
-La stessa regola è inoltre il punto in cui si decide come comportarsi con le celle prive di
-misura, di cui \req{F7} chiede un trattamento esplicito: se una posizione richiesta è
+La regola deve inoltre decidere come comportarsi con eventuali valori mancanti,
+di cui \req{F7} chiede un trattamento esplicito: se una posizione richiesta è
 circondata anche da un solo campione assente, non esiste una risposta valida per ogni
 grandezza, e la decisione se propagare l'assenza, ignorarla o convertirla ricade nuovamente
 sulla semantica del dato.
@@ -285,11 +282,13 @@ produzione di valori silenziosamente scorretti. Il layer è quindi definito sull
 estensione spaziale dei dati che espone, e una richiesta al di fuori di essa è da
 considerarsi un errore di modellazione della simulazione, da segnalare come tale.
 
+\iffalse
 La delimitazione è sostenibile perché l'estensione spaziale è nota prima
 dell'esecuzione: essa coincide con l'area richiesta al data store, e la collocazione
 dei nodi e i percorsi lungo i quali essi si muovono ricadono su chi configura
 la simulazione. Una posizione esterna è quindi data da un'incoerenza fra i
 dati richiesti e l'ambiente simulato.
+\fi
 
 Sul dominio temporale la situazione è diversa. Il tempo di una simulazione avanza
 indefinitamente a partire dallo zero, e il momento in cui essa termina non è
@@ -452,7 +451,9 @@ essa risponde.
 
 Le entità si dispongono lungo i tre sotto-problemi individuati nella
 Sezione~\ref{sec:analisi-problema}. Le prime due riguardano la rappresentazione, le tre
-successive la risoluzione di un valore, le ultime tre l'acquisizione. Ogni requisito
+successive la risoluzione di un valore, le ultime tre l'acquisizione. 
+\iffalse
+Ogni requisito
 funzionale è coperto da almeno un'entità, a eccezione di \req{F11}, che non riguarda le
 entità del dominio bensì il modo in cui esse vengono rese dichiarabili nella
 configurazione di una simulazione.
@@ -461,3 +462,4 @@ Le relazioni che attraversano i confini fra un gruppo e l'altro sono tre: quella
 il layer e la serie di griglie che espone, quella fra la regola di risoluzione e le griglie
 sulle quali essa opera, e quella fra il layer e il gestore della cache dal quale ottiene
 i dati da cui la serie viene costruita.
+\fi

@@ -18,8 +18,12 @@ override fun getValue(position: GeoPosition): T {
 private fun sample(position: GeoPosition, gridBeforeIndex: Int, gridAfterIndex: Int, timeWeight: Double): T {
     val gridBefore = data.grid(gridBeforeIndex)
     val gridAfter = data.grid(gridAfterIndex)
-    require(gridBefore.isInBounds(position)) { outOfBoundsMessage(position, gridBefore) }
-    return converter.convert(interpolation.interpolate(position, gridBefore, gridAfter, timeWeight))
+    require(gridBefore.isInBounds(position)) {
+        outOfBoundsMessage(position, gridBefore)
+    }
+    return converter.convert(
+        interpolation.interpolate(position, gridBefore, gridAfter, timeWeight)
+    )
 }
 
 private fun sampleExactSlice(position: GeoPosition, gridIndex: Int): T =

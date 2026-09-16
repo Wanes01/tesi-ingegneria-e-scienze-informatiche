@@ -1,3 +1,5 @@
+private fun Instant.toSimulationTime(origin: Instant, scale: Duration): Double = (this - origin) / scale
+
 open class CopernicusLayer<T>(
     // ...,
     private val data: GridSnapshots,
@@ -19,6 +21,3 @@ open class CopernicusLayer<T>(
     }
     // ...
 }
-
-private fun Instant.toSimulationTime(origin: Instant, scale: Duration): Double =
-    (this - origin) / scale

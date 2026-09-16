@@ -32,14 +32,11 @@ in modo distribuito per pre-allertare le stazioni dei vigili del fuoco prossime 
 zone a rischio. In~\cite{audrito2021optimal} il simulatore costituisce invece l'intero
 apparato sperimentale del lavoro: viene utilizzato sia per confrontare algoritmi
 decentralizzati di raccolta e aggregazione dei dati su reti di dispositivi mobili,
-esplorando parametri quali densità, diametro della rete e velocità
-di movimento, sia per uno studio in cui gli stessi algoritmi vengono applicati
+sia per uno studio in cui gli stessi algoritmi vengono applicati
 al tracciamento di una folla in un parco cittadino.
 
 Le sezioni che seguono si limitano agli elementi necessari a collocare il lavoro
-descritto in questa tesi: la nozione di layer, il modo in cui il tempo di simulazione è
-reso accessibile ai componenti, il supporto geospaziale già disponibile e il sistema di
-caricamento delle simulazioni da file YAML.
+descritto in questa tesi.
 
 \subsection{Il motore di simulazione}
 \label{subsec:alchemist-lifecycle}
@@ -151,9 +148,8 @@ non dotato di un modo per far percepire loro misurazioni campionate nello spazio
 
 Una simulazione Alchemist si specifica tipicamente in modo dichiarativo, in un file YAML
 che indica, per ciascun componente, il nome della classe che lo implementa e i parametri
-con cui costruirlo. Questo meccanismo, basato sulla reflection, non è un semplice dettaglio
-di configurazione: i vincoli che impone hanno condizionato la forma di ogni classe destinata
-a essere istanziata da YAML.
+con cui costruirlo. Questo meccanismo, basato sulla reflection, ha condizionato la forma di
+ogni classe destinata a essere istanziata da YAML.
 
 Il layer gaussiano introdotto nella Sezione~\ref{subsec:alchemist-layer} è costruito
 da un costruttore di sei parametri (\Cref{lst:bidimensional-gaussian-layer-kotlin}), 
@@ -231,10 +227,11 @@ indicata dalla chiave \texttt{molecule} (\texttt{moleculeName}).
 \label{sec:copernicus}
 
 Copernicus è il programma di osservazione della Terra dell'Unione Europea, articolato in
-servizi tematici. Fra questi, il \ac{CEMS} %\footnote{\url{https://emergency.copernicus.eu/}}
-fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
-protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa
-tesi.
+servizi tematici. 
+%Fra questi, il \ac{CEMS} %\footnote{\url{https://emergency.copernicus.eu/}}
+%fornisce informazioni geospaziali a supporto della gestione di emergenze ed eventi di
+%protezione civile, ed è il servizio da cui ha preso avvio il progetto descritto in questa
+%tesi.
 
 L'accesso programmatico ai dati non è però organizzato per servizio: avviene attraverso
 una famiglia di \emph{data store} gestiti dall'\ac{ECMWF}\footnote{Centro Europeo per le previsioni meteorologiche a medio termine: \url{https://www.ecmwf.int/}}
@@ -356,12 +353,12 @@ dell'elaborazione.
 Lo schema è descritto, a livello di standard, da \ac{OGC} in \emph{OGC API - Processes -
 Part 1: Core}~\cite{ogc_api_processes_core}, che specifica un'interfaccia REST per
 l'esecuzione di elaborazioni remote e per il recupero dei relativi risultati. Il ciclo di
-vita di un job si articola in tre fasi:
+vita di un processo si articola in tre fasi:
 la sottomissione, tramite una richiesta \texttt{POST} all'endpoint di esecuzione del
 processo; l'interrogazione dello stato, il cui indirizzo lo standard prescrive sia
 comunicato al client nell'intestazione \texttt{Location} della risposta alla
-sottomissione; e il recupero dei risultati, disponibile una volta che il job ha raggiunto
-uno stato terminale. Lo standard definisce inoltre l'insieme degli stati che un job può
+sottomissione; e il recupero dei risultati, disponibile una volta che il processo ha raggiunto
+uno stato terminale. Lo standard definisce inoltre l'insieme degli stati che un processo può
 assumere durante l'elaborazione, distinguendo quelli intermedi da quelli terminali, ai
 quali è associata la disponibilità dei risultati o della descrizione dell'errore.
 
@@ -369,7 +366,7 @@ Ogni risposta include, oltre ai dati che rappresenta, un vettore \texttt{links}.
 collegamento è accompagnato da una relazione (\texttt{rel}), un'etichetta che ne dichiara
 il significato: quale risorsa il collegamento raggiunga e in che rapporto stia con quella
 corrente. Lo standard stabilisce quali relazioni usare per le risorse che definisce, ad
-esempio \texttt{status} per lo stato di un job, e consente alle implementazioni di
+esempio \texttt{status} per lo stato di un processo, e consente alle implementazioni di
 aggiungere collegamenti propri, oltre a quelli previsti.
 
 Per gli errori, lo standard raccomanda, senza imporlo, il formato \emph{Problem Details}

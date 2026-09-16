@@ -1,15 +1,29 @@
 \chapter{Implementazione}
 \label{chap:implementazione}
 
+\iffalse
 Questo capitolo descrive come le scelte del Capitolo~\ref{chap:progettazione} sono state
 realizzate, seguendone la stessa articolazione. Vengono riportati i soli
 punti in cui la realizzazione ha richiesto decisioni non deducibili dalla progettazione,
 ovvero quelli in cui il formato dei dati, il protocollo dei servizi remoti o il meccanismo
 di caricamento di Alchemist hanno imposto una forma particolare.
+\fi
 
 \section{La lettura dei dati}
 \label{sec:rappresentazione-impl}
 
+La lettura di \ac{NetCDF} e \ac{GRIB} è delegata alla libreria NetCDF-Java~\cite{netcdfjava},
+sviluppata da Unidata. La libreria espone entrambi i formati attraverso lo stesso modello
+di dati, il \ac{CDM}, che descrive un file come un insieme di variabili definite su assi
+tipizzati (\req{F8}).
+
+I file sono aperti in modalità \emph{enhanced}, nella quale la libreria interpreta i metadati
+già presenti nel file per esporre gli assi tipizzati e, soprattutto, sostituisce
+automaticamente i valori convenzionali di riempimento con \texttt{Double.NaN}. La
+convenzione interna del modulo per i valori mancanti coincide quindi con quella che la
+libreria produce.
+
+\iffalse
 \subsection{L'accesso ai formati}
 \label{subsec:formati-impl}
 
@@ -39,6 +53,7 @@ non appena il file è aperto (\Cref{lst:sax-parser}).
     label={lst:sax-parser},
     caption={[Gestione del parser per i file GRIB]Apertura di un file con ripristino della fabbrica di parser preesistente.}
 ]{listings/implementazione/sax-parser.kt}
+\fi
 
 \subsection{L'individuazione e la normalizzazione degli assi}
 \label{subsec:normalizzazione-impl}
@@ -48,14 +63,11 @@ questi tipi anziché sui nomi delle dimensioni, che variano da dataset a dataset
 asse compare come \texttt{latitude} in alcuni file e come \texttt{lat} in altri, mentre il
 tipo dichiarato è in entrambi i casi quello di latitudine.
 
-Sull'asse temporale il tipo dichiarato non è sempre lo stesso. I dataset che distribuiscono
+Sull'asse temporale il tipo dichiarato non è sempre lo stesso: i dataset che distribuiscono
 previsioni espongono l'istante di emissione e quello di validità con tipi distinti, e alcuni
-archivi etichettano il proprio unico asse temporale come istante di emissione. La ricerca
-considera pertanto entrambi i tipi, ripiegando sul secondo quando il primo è assente. L'asse
-così individuato viene poi ricostruito come asse temporale interpretato secondo le
-convenzioni \ac{CF}, che è ciò che consente di ottenere istanti assoluti piuttosto che dei
-numeri riferiti all'origine dichiarata nei metadati del file.
-Il \Cref{lst:lettura-assi} riporta l'individuazione dei tre assi.
+archivi etichettano il proprio unico asse temporale come istante di emissione.
+Il \Cref{lst:lettura-assi} riporta l'individuazione dei tre assi, ciascuno ottenuto con
+\texttt{findCoordinateAxis} a partire dal tipo cercato.
 
 \lstinputlisting[
     language=Kotlin,
@@ -63,40 +75,55 @@ Il \Cref{lst:lettura-assi} riporta l'individuazione dei tre assi.
     caption={[Individuazione degli assi spaziali e temporali]Individuazione degli assi a partire dal tipo dichiarato nel CDM.}
 ]{listings/implementazione/readFileAxesAssi.kt}
 
-Lo schema di un file non è però fissato a priori, in due sensi distinti. Il primo è l'ordine
-in cui le tre dimensioni compaiono nella dichiarazione della variabile, poiché è quest'ordine
-a determinare la disposizione dei valori in memoria: un file che dichiara
-$(\text{tempo}, \text{latitudine}, \text{longitudine})$ memorizza una riga di longitudini
-dopo l'altra, mentre uno che dichiara
-$(\text{tempo}, \text{longitudine}, \text{latitudine})$ memorizza una colonna dopo l'altra.
+Per il tempo, l'operatore \texttt{?:} realizza il ripiego appena descritto: si cerca
+l'asse di tipo \texttt{Time} e, solo se assente, uno di tipo \texttt{RunTime}. Ogni
+ricerca è racchiusa in \texttt{requireNotNull}, così che un asse mancante interrompa
+la lettura con un messaggio che nomina il file.
+Gli assi vengono richiesti come \texttt{CoordinateAxis1D}, controllando così che siano
+monodimensionali.
 
-La libreria non impone alcun ordine: legge la porzione richiesta e restituisce i valori così
-come il file li dispone. Tuttavia, le rappresentazioni delle griglie prendono come ipotesi
-che le righe che le formano siano rappresentate da latitudini e non da longitudini.
+L'asse temporale viene successivamente ricostruito con \texttt{CoordinateAxis1DTime.factory},
+il quale applica le convenzioni \ac{CF}, interpretandone l'unità e l'origine dichiarate nei
+metadati. Ciò consente di ottenere istanti assoluti al posto di numeri relativi all'origine.
+Eventuali problemi incontrati nella ricostruzione sono raccolti in \texttt{errMsg} e
+riportati all'utente.
 
-Le convenzioni \ac{CF} raccomandano l'ordine
-$(\text{tempo}, \text{latitudine}, \text{longitudine})$, il quale non è però un obbligo~\cite{cf_conventions},
-di conseguenza i file \ac{NetCDF} estratti dagli store espongono i propri assi in ordine
-arbitrario. In questo modo la lettura avverrebbe comunque con successo, senza produrre un
-fallimento, producendo bensì una griglia con gli assi spaziali scambiati; tale griglia
-produrrebbe valori errati, in contrasto con \req{NF5}. La porzione letta viene quindi
-permutata nell'ordine atteso.
-
-Il secondo senso è la direzione degli assi, che possono essere memorizzati in ordine
-crescente o decrescente. Poiché l'individuazione di una coordinata sugli assi è una ricerca
-binaria (Sezione~\ref{subsec:ricerca-impl}), che presuppone un ordinamento crescente, per
-ciascun asse decrescente l'indice viene rovesciato durante l'appiattimento della porzione in
-un vettore.
-
-Entrambe le normalizzazioni avvengono una sola volta, alla costruzione della serie, ed è ciò
-che consente al resto del modulo di ignorare del tutto lo schema originale.
-Il \Cref{lst:permutazione} riporta le due operazioni.
+Lo schema di un file non è però fissato a priori, in due sensi. Il primo è l'ordine delle
+dimensioni nella dichiarazione della variabile, che determina la disposizione dei valori in
+memoria: le convenzioni \ac{CF} raccomandano
+$(\text{tempo}, \text{latitudine}, \text{longitudine})$ senza imporlo~\cite{cf_conventions},
+e la libreria restituisce i valori nell'ordine in cui il file li dispone. Poiché le griglie
+assumono che le righe corrispondano alle latitudini, un ordine diverso produrrebbe, senza
+alcun errore, una griglia con gli assi spaziali scambiati e quindi valori errati (\req{NF5}).
+ 
+Il secondo è la direzione degli assi, che possono essere memorizzati in ordine crescente o
+decrescente, mentre l'individuazione di una coordinata è una ricerca binaria
+(Sezione~\ref{subsec:ricerca-impl}) che presuppone l'ordine crescente.
+ 
+Il \Cref{lst:permutazione} riporta le due normalizzazioni, che avvengono una sola volta, alla
+costruzione della serie, e consentono al resto del modulo di ignorare lo schema originale.
 
 \lstinputlisting[
     language=Kotlin,
     label={lst:permutazione},
     caption={[Lettura di una variabile da un file geospaziale]Lettura di una porzione e suo appiattimento in ordine crescente.}
 ]{listings/implementazione/gridReading.kt}
+
+In \texttt{readPermutedSlice} la porzione relativa all'istante \texttt{t} viene letta
+rispettando l'ordine del file: i vettori \texttt{origin} e \texttt{shape} sono riempiti
+usando come indici le posizioni \texttt{timePosition}, \texttt{latPosition} e
+\texttt{lonPosition} che le tre dimensioni occupano nella dichiarazione della variabile.
+La chiamata a \texttt{permute} riordina poi le dimensioni in
+$(\text{tempo}, \text{latitudine}, \text{longitudine})$. Poiché \texttt{permute} restituisce
+una vista, la struttura viene copiata tramite \texttt{copy}. Senza la copia, l'accesso per
+indice della funzione successiva leggerebbe i valori nell'ordine originale.
+ 
+La funzione \texttt{flattenAscending} appiattisce infine la porzione in un \texttt{DoubleArray} ordinato
+per righe di latitudine. Per ogni posizione \texttt{idx} del vettore di destinazione, la
+divisione intera e il resto per \texttt{nLon} ricavano gli indici di riga e di colonna; se
+un asse è decrescente, l'indice corrispondente viene rovesciato, ad esempio in
+\texttt{nLat - 1 - iLat}, prima di leggere il valore sorgente. Il risultato è una griglia
+con entrambi gli assi crescenti, indipendentemente da come il file li memorizzava.
 
 \subsection{La selezione della variabile}
 \label{subsec:variabile-impl}
@@ -105,19 +132,9 @@ Un archivio può contenere più variabili distinte, e la costruzione di una seri
 stabilire quale estrarre (Sezione~\ref{subsec:grid-snapshots}).
 Il nome da indicare non è
 quello con cui la variabile è catalogata dal servizio, usato durante la selezione dei
-parametri in fase di richiesta, bensì quello con cui la variabile è identificata all'interno
-del file.
-
-Quando l'archivio contiene una sola variabile definita sulle tre dimensioni di interesse
-(tempo, latitudine, longitudine),
-indicarne il nome sarebbe una ridondanza. Il parametro è per questo facoltativo: se non
-specificato, la variabile viene individuata fra quelle definite esattamente su quelle tre
-dimensioni.
-Nel rispetto di \req{NF5}, ogni errore è informativo: nel caso in
-cui la variabile specificata sia assente, le variabili disponibili vengono
-comunicate al modellista; allo stesso modo, viene reso esplicito se
-non ci sono variabili descritte dalle
-dimensioni aspettate o se ne vengono trovate multiple.
+parametri in fase di richiesta, ma quello con cui la variabile è identificata all'interno
+del file. Quando l'archivio contiene una sola variabile definita sulle tre dimensioni di
+interesse, indicarne il nome sarebbe ridondante, e il parametro è per questo facoltativo.
 Il \Cref{lst:resolve-variable} riporta i due criteri.
 
 \lstinputlisting[
@@ -126,8 +143,16 @@ Il \Cref{lst:resolve-variable} riporta i due criteri.
     caption={Selezione della variabile da estrarre.}
 ]{listings/implementazione/resolveVariable.kt}
 
-Il criterio di selezione esclude anche le variabili che dichiarano più di tre
-dimensioni poiché non rientrano tra quelle considerate per l'interrogazione del layer.
+Se il nome è fornito, la variabile viene cercata direttamente con \texttt{findVariable}.
+Altrimenti i nomi delle tre dimensioni, ricevuti come argomenti, formano l'insieme
+\texttt{targetDims}, e fra le variabili del file vengono selezionate quelle con esattamente
+tre dimensioni i cui nomi coincidono con quelle fornite.
+
+I due \texttt{require} permettono di avvertire il modellista se non viene trovata
+nessuna variabile specificata o se la risoluzione è ambigua, se più variabili rispettano
+tutti i criteri (\req{NF5}).
+
+Se viene correttamente identificata una sola variabile, \texttt{single} restituisce quest'ultima.
 
 \subsection{La costruzione della serie}
 \label{subsec:serie-impl}
@@ -145,17 +170,28 @@ ordine lessicografico e le successive scartate, segnalandolo a chi conduce la si
 L'alternativa, ovvero il fallimento dovuto alla duplicazione degli istanti, sarebbe stata
 eccessiva rispetto a una condizione che le richieste ai data store producono spesso.
 
-L'omogeneità dei file è verificata durante
-la lettura: il primo file stabilisce gli assi spaziali e il nome della variabile, e ogni
-file successivo viene confrontato con essi. Un disallineamento produce un errore al
-caricamento della simulazione, come \req{NF6} richiede.
-Il \Cref{lst:eager-init} riporta la costruzione.
+Ogni griglia letta viene inoltre memorizzata nella realizzazione più adatta alla propria
+densità: se questa è inferiore
+alla soglia \texttt{SPARSE\_DENSITY\_THRESHOLD}, pari al 10\%, la griglia è costruita come
+\texttt{MapRasterGrid}, altrimenti come \texttt{ArrayRasterGrid}.
+
+L'omogeneità dei file è verificata durante la lettura, come mostra il \Cref{lst:eager-init}.
 
 \lstinputlisting[
     language=Kotlin,
     label={lst:eager-init},
     caption={Costruzione della serie dai file di una cartella.}
 ]{listings/implementazione/EagerGridInit.kt}
+
+La variabile \texttt{reference}, che specifica le informazioni sulla prima griglia
+della serie, è inizialmente nulla. Al primo file, l'operatore \texttt{?:}
+la inizializza con gli assi appena letti; per ogni file successivo, \texttt{?.also} invoca
+invece \texttt{requireMatches}, che confronta assi spaziali e nome della variabile con quelli
+di riferimento. Un disallineamento produce così un errore al caricamento della simulazione.
+Ogni file è aperto con \texttt{use}, che ne garantisce la chiusura anche in caso di errore,
+e le griglie lette da \texttt{readTimestepsFrom} confluiscono nella \texttt{TreeMap}.
+Alla fine delle operazioni di lettura, chiavi e valori della mappa diventano gli
+istanti e le griglie della serie, già ordinati.
 
 \section{Le strategie di risoluzione}
 \label{sec:strategie-impl}
@@ -177,43 +213,46 @@ Il \Cref{lst:axes-search} riporta la prima delle tre.
     caption={Individuazione dell'indice più vicino a una coordinata sull'asse.}
 ]{listings/implementazione/Axes.kt}
 
+La funzione si appoggia a \texttt{Arrays.binarySearch}, che restituisce l'indice della
+coordinata se questa è presente sull'asse, altrimenti il valore $-p-1$, dove $p$ è il
+punto di inserimento, ovvero l'indice del primo elemento maggiore della coordinata.
+\texttt{upperIndex} ricava $p$ da questa codifica, e i rami del \texttt{when} coprono i
+quattro casi possibili:
+
+\begin{itemize}
+    \item la coordinata è presente sull'asse, e il suo indice viene restituito direttamente;
+    \item la coordinata precede il primo elemento, e viene restituito l'indice
+    iniziale;
+    \item la coordinata supera l'ultimo elemento, e viene restituito l'ultimo indice;
+    \item la coordinata si trova tra due elementi dell'asse, e fra i due indici adiacenti viene scelto quello
+    più vicino.
+\end{itemize}
+
+Il secondo e il terzo ramo sono quelli che realizzano l'estrapolazione costante.
+
 Nessuna di queste funzioni verifica che l'asse ricevuto sia strettamente crescente. 
 Il controllo non viene effettuato poiché sarebbe ridondante visto che la monotonia
 degli assi spaziali è garantita dalla costruzione delle griglie; la monotonia dell'asse
-temporale è garantita invece dalla costruzione della serie di griglie. Inoltre,
+temporale è garantita invece dalla costruzione della serie. Inoltre,
 tale controllo porterebbe a costo lineare un'operazione altrimenti logaritmica.
 
 \subsection{Uguaglianza fra le strategie}
 \label{subsec:composizione-impl}
 
-Tutte le strategie senza argomenti estendono la classe \texttt{StatelessStrategy}.
-Ad esempio, la classe \texttt{TrilinearInterpolation}, mostrata nel \Cref{lst:trilinear}.
-
-\lstinputlisting[
-    language=Kotlin,
-    label={lst:trilinear},
-    caption={L'interpolazione trilineare per delegazione.}
-]{listings/implementazione/TrilinearInterpolation.kt}
-
-Questa classe padre esiste per soddisfare un vincolo del meccanismo di caricamento.
-Il caricatore quando incontra un parametro dichiarato a sua volta con una classe e i
-propri parametri riceve la specifica YAML su come costruirlo.
-Per tradurla deve sapere di quale tipo debba essere l'oggetto, e questo dipende
-da quale costruttore del layer verrà invocato. Il
-caricatore costruisce allora il parametro una volta per ciascun costruttore possibile, e
-confronta poi le istanze ottenute. Se non risultano tutte uguali, considera la risoluzione
-ambigua e interrompe il caricamento.
-
+Le strategie prive di configurazione, come \texttt{BilinearInterpolation} o
+\texttt{LinearInterpolation}, ridefiniscono l'uguaglianza per soddisfare un vincolo del
+meccanismo di caricamento. Quando un parametro è a sua volta un oggetto descritto nel file
+YAML, il caricatore deve sapere di quale tipo debba essere l'oggetto, e questo dipende da
+quale costruttore del layer verrà invocato. Il caricatore costruisce allora il parametro
+una volta per ciascun costruttore possibile e confronta le istanze ottenute: se non
+risultano tutte uguali, considera la risoluzione ambigua e interrompe il caricamento.
+ 
 Tutti e tre i costruttori del layer dichiarano la coppia di strategie per l'interpolazione
-e la conversione del valore
-(Sezione~\ref{subsec:costruttori-impl}), per cui una medesima strategia viene costruita
-più volte. Il confronto predefinito fra oggetti guarda però l'identità dei riferimenti, e
-istanze costruite separatamente non risultano quindi mai uguali fra loro: il caricamento
-fallirebbe.
-
-Le strategie prive di parametri di configurazione estendono quindi una classe base
-comune, che ridefinisce uguaglianza e codice di hash sul tipo a tempo di esecuzione.
-Il \Cref{lst:stateless-strategy} ne riporta la definizione.
+e la conversione del valore (Sezione~\ref{subsec:costruttori-impl}), per cui una stessa
+strategia viene costruita più volte. Il confronto predefinito fra oggetti guarda però
+l'identità dei riferimenti, e istanze costruite separatamente non risultano mai uguali fra
+loro: il caricamento fallirebbe. Per questo tali strategie estendono una classe base comune,
+\texttt{StatelessStrategy}, riportata nel \Cref{lst:stateless-strategy}.
 
 \lstinputlisting[
     language=Kotlin,
@@ -221,23 +260,34 @@ Il \Cref{lst:stateless-strategy} ne riporta la definizione.
     caption={Criterio di identità comune alle strategie prive di configurazione.}
 ]{listings/implementazione/StatelessStrategy.kt}
 
+La classe ridefinisce \texttt{equals} e \texttt{hashCode} in modo che l'uguaglianza
+tra due strategie senza stato sia data solamente dalla classe che istanziano, confrontando
+con \texttt{other::class}.
+
+Il \Cref{lst:trilinear} mostra la classe in uso in \texttt{TrilinearInterpolation}.
+
+\lstinputlisting[
+    language=Kotlin,
+    label={lst:trilinear},
+    caption={L'interpolazione trilineare per delegazione.}
+]{listings/implementazione/TrilinearInterpolation.kt}
+
+La classe \texttt{TrilinearInterpolation} estende \texttt{StatelessStrategy} e implementa
+\texttt{SpatioTemporalInterpolation} delegando, tramite \texttt{by}, a una
+\texttt{SeparableSpatioTemporalInterpolation} configurata con
+\texttt{BilinearInterpolation} e \texttt{LinearInterpolation}. L'uguaglianza
+ereditata resta corretta anche qui, perché la configurazione è stabilita dalla classe stessa
+e non può variare fra un'istanza e l'altra.
+
 \section{Il layer}
 \label{sec:layer-impl}
 
 \subsection{La corrispondenza temporale}
 \label{subsec:corrispondenza-impl}
 
-L'intera successione degli
-istanti della serie viene ricondotta al tempo di simulazione una sola volta, alla
-costruzione del layer. La conversione avviene tramite una origine e una scala, applicata a
-ciascun istante. L'origine, se non specificata, corrisponde al
-primo istante disponibile della serie di griglie.
-
-Due condizioni sono verificate alla costruzione: che la serie non sia vuota, poiché una
-serie priva di istanti non individua alcun valore, e che la scala sia una durata finita e
-positiva, poiché una scala nulla renderebbe la conversione indefinita e una negativa
-invertirebbe l'ordine della successione.
-Il \Cref{lst:layer-time} riporta entrambe assieme alla conversione.
+La corrispondenza fra i due domini temporali è stabilita alla costruzione del layer, come
+descritto nella Sezione~\ref{sec:corrispondenza-temporale}. Il \Cref{lst:layer-time} ne
+riporta la realizzazione.
 
 \lstinputlisting[
     language=Kotlin,
@@ -245,24 +295,26 @@ Il \Cref{lst:layer-time} riporta entrambe assieme alla conversione.
     caption={Conversione degli istanti della serie in tempo di simulazione.}
 ]{listings/implementazione/CopernicusLayerTime.kt}
 
+Il blocco \texttt{init} verifica due condizioni: che la serie non sia vuota, poiché una
+serie priva di istanti non individua alcun valore, e che \texttt{timeScale} sia una durata
+finita e positiva, poiché una scala nulla renderebbe la conversione indefinita e una
+negativa invertirebbe l'ordine della successione.
+ 
+La proprietà \texttt{sliceTimes} contiene il risultato della conversione
+da istanti reali a tempi di simulazione. L'origine è quella
+dichiarata oppure, tramite l'operatore \texttt{?:}, il primo istante della serie, e ogni
+istante viene tradotto da \texttt{toSimulationTime}. La funzione si riduce all'espressione
+\texttt{(this - origin) / scale}: la differenza fra due \texttt{Instant} produce una
+\texttt{Duration}, e il rapporto fra due \texttt{Duration} un numero reale, che è
+esattamente il tempo di simulazione cercato.
+Il risultato è conservato in un \texttt{DoubleArray}, sul quale opera la ricerca della
+Sezione~\ref{subsec:ricerca-impl}.
+
 \subsection{L'interrogazione}
 \label{subsec:interrogazione-impl}
 
-L'interrogazione realizza la distribuzione di responsabilità della \Cref{fig:layer-sequenza}:
-il layer legge il
-tempo di simulazione corrente dall'environment, individua i campioni temporali che lo
-racchiudono e delega alle strategie la produzione del valore.
-
-Il tempo di simulazione non è però sempre disponibile (Sezione~\ref{subsec:alchemist-time}), e
-un'interrogazione che avvenga prima che lo sia non troverebbe alcun istante da leggere.
-In tal caso il
-layer assume lo zero, ovvero l'istante iniziale della simulazione, che è il valore che il
-motore esporrebbe non appena costruito.
-
-Nel caso in cui l'istante di simulazione coincida esattamente con una griglia,
-l'interpolazione viene applicata prendendo due volte la stessa come riferimento, con peso
-nullo.
-Il \Cref{lst:layer-get-value} riporta l'interrogazione completa.
+L'interrogazione segue la sequenza della \Cref{fig:layer-sequenza}, e il
+\Cref{lst:layer-get-value} ne riporta la realizzazione.
 
 \lstinputlisting[
     language=Kotlin,
@@ -270,22 +322,36 @@ Il \Cref{lst:layer-get-value} riporta l'interrogazione completa.
     caption={Risoluzione di un valore a partire da una posizione geografica.}
 ]{listings/implementazione/CopernicusLayerGetValue.kt}
 
-La verifica che la posizione richiesta ricada nella regione coperta dai dati avviene su una
-qualsiasi delle due griglie, qua presa come riferimento la prima, poiché l'omogeneità degli assi
-spaziali è
-accertata alla costruzione della serie.
+La prima istruzione di \texttt{getValue} legge il tempo di simulazione corrente. Il tempo
+non è però sempre disponibile (Sezione~\ref{subsec:alchemist-time}): la simulazione esiste
+solo dopo che il modello è stato costruito, e \texttt{simulationOrNull} restituisce
+\texttt{null} se il layer viene interrogato prima. In tal si assume lo zero,
+ovvero il valore che la simulazione esporrebbe non appena costruita.
+ 
+\texttt{bracketIndices} restituisce poi gli indici dei due campioni di \texttt{sliceTimes}
+che racchiudono \texttt{t}. Quando i due indici coincidono, perché \texttt{t} cade
+esattamente su una griglia oppure, per l'estrapolazione costante, al di fuori
+dell'intervallo coperto, \texttt{sampleExactSlice} usa due volte la stessa griglia con peso
+nullo; altrimenti \texttt{weight} calcola la posizione relativa di \texttt{t} fra i due
+campioni.
+ 
+In entrambi i casi si converge in \texttt{sample}, che realizza la parte
+finale della sequenza: ottiene le due griglie dalla serie, verifica con \texttt{require} che
+la posizione ricada nella regione coperta, segnalando in caso contrario l'errore di
+modellazione, e restituisce
+\texttt{converter.convert(interpolation.interpolate(\dots))}. In quest'ultima espressione si
+nota direttamente la separazione fra la produzione del valore numerico e la sua traduzione
+nel tipo esposto. La verifica dei limiti spaziali avviene sulla sola \texttt{gridBefore}, poiché
+l'omogeneità degli assi spaziali è accertata alla costruzione della serie.
 
 \subsection{I costruttori e la configurazione}
 \label{subsec:costruttori-impl}
 
-Il meccanismo di caricamento istanzia le classi tramite reflection, ispezionando le firme
-dei costruttori disponibili e selezionando quella compatibile con i parametri dichiarati
-nella configurazione (Sezione~\ref{subsec:alchemist-loader}). Alle tre modalità descritte
-nella Sezione~\ref{subsec:layer-costruzione} corrispondono altrettanti costruttori di
-\texttt{DoubleCopernicusLayer}, la specializzazione concreta di \texttt{CopernicusLayer<T>}. 
-La forma degli argomenti non è data però dalle sole modalità di costruzione: in più punti è il meccanismo di caricamento
-a dettarla.
-Il \Cref{lst:costr-layer} riporta le tre firme.
+Alle tre modalità di costruzione descritte nella Sezione~\ref{subsec:layer-costruzione} corrispondono
+altrettanti costruttori di \texttt{DoubleCopernicusLayer}, la specializzazione concreta di
+\texttt{CopernicusLayer<T>}, riportati nel \Cref{lst:costr-layer}. La forma dei loro
+argomenti non è data però dalle sole modalità di costruzione: in più punti è il meccanismo
+di caricamento (Sezione~\ref{subsec:alchemist-loader}) a dettarla.
 
 \lstinputlisting[
     language=Kotlin,
@@ -329,9 +395,12 @@ parametri, che risiede in un file JSON separato anziché nella configurazione YA
 poiché il meccanismo di caricamento attribuisce a certi nomi un significato proprio, ad
 esempio \texttt{type}, con cui è indicata la classe da istanziare, e lo stesso nome può
 comparire fra i parametri ammessi da alcuni dataset, dove designa ad esempio il tipo di
-rianalisi richiesta. Una selezione dichiarata direttamente nella configurazione non è quindi
+rianalisi richiesta. 
+\iffalse
+Una selezione dichiarata direttamente nella configurazione non è quindi
 possibile, poiché il meccanismo interpreterebbe quella chiave come propria ed esigerebbe che
 il valore associato nomini una classe.
+\fi
 
 Il secondo è l'abilitazione della verifica del digest MD5, mantenuta obbligatoria
 benché un valore predefinito sarebbe naturale. Ogni argomento facoltativo genera una
@@ -356,7 +425,7 @@ L'environment, dichiarato da ciascuno dei tre, non compare invece fra gli argome
 configurazione YAML, essendo iniettato automaticamente.
 
 Il \Cref{lst:yaml} mostra un esempio della forma finale assunta dal layer dal punto di vista di chi
-conduce una simulazione, e costituisce la concretizzazione di \req{F11}. Si noti che
+conduce una simulazione (\req{F11}). Si noti che
 gli argomenti successivi all'interpolazione sono omessi e assumono quindi i propri
 valori di default.
 
@@ -366,6 +435,7 @@ valori di default.
     caption={Dichiarazione del layer in un file di simulazione.}
 ]{listings/implementazione/yaml.yml}
 
+\iffalse
 La selezione dei parametri risiede nel file indicato, il cui contenuto è quello atteso dal
 servizio ed è riportato nel \Cref{lst:inputs}.
 
@@ -374,6 +444,7 @@ servizio ed è riportato nel \Cref{lst:inputs}.
     label={lst:inputs},
     caption={Selezione dei parametri della richiesta, in un file separato.}
 ]{listings/implementazione/2mt.json}
+\fi
 
 \section{Il sottosistema di acquisizione}
 \label{sec:acquisizione-impl}
@@ -383,17 +454,9 @@ servizio ed è riportato nel \Cref{lst:inputs}.
 
 L'identità di una richiesta è
 data dal data store, dal dataset e dalla selezione dei parametri; di quest'ultima conta
-il contenuto e non l'ordine con cui i parametri compaiono. Resta da stabilire come tale
-equivalenza venga riconosciuta e tradotta in un nome di cartella.
-
-La selezione è letta come struttura generica di mappe e liste. Due selezioni
-equivalenti possono differire nell'ordine in cui le chiavi compaiono;
-la codifica adottata compie pertanto una sola normalizzazione: riordina
-ricorsivamente le chiavi di ogni mappa. L'ordine delle liste è invece preservato, poiché
-nelle richieste ai data store queste sono semantiche, come nel caso di un elenco di date o
-di livelli.
-
-Il \Cref{lst:canonical-json} riporta la codifica.
+il contenuto e non l'ordine con cui i parametri compaiono. La selezione è
+letta come struttura generica di mappe e liste, e la codifica ne compie una sola
+normalizzazione, riportata nel \Cref{lst:canonical-json}.
 
 \lstinputlisting[
     language=Kotlin,
@@ -401,17 +464,17 @@ Il \Cref{lst:canonical-json} riporta la codifica.
     caption={Ordinamento della selezione dei parametri.}
 ]{listings/implementazione/CanonicalJson.kt}
 
-La terna formata dal data store, dal dataset e dalla selezione normalizzata dei parametri
-viene quindi data come argomento alla funzione di hash SHA-256~\cite{sha256}, del cui digest
-si conservano le prime 16 cifre esadecimali. Il nome della cartella in cache è composto
-dal nome del dataset, nel quale ogni carattere non ammesso dai file system è sostituito da
-un trattino basso, seguito da tali cifre.
-
-Il nome è un compromesso fra leggibilità e probabilità di collisione: la parte derivata dal
-dataset consente a chi conduce la simulazione di riconoscere la cartella ispezionando la
-cache, mentre le cifre del digest ne stabiliscono l'identità. La lunghezza scelta corrisponde
-a 64 bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
-trascurabile. Il \Cref{lst:coper-req} riporta la derivazione del nome.
+La funzione \texttt{canonicalize} visita ricorsivamente la struttura. Ogni mappa viene
+ricopiata in una \texttt{TreeMap}, che mantiene le chiavi ordinate, normalizzandone a sua
+volta i valori; le liste sono ricostruite conservandone l'ordine, poiché nelle richieste
+ai data store l'ordine di una
+lista è semantico, come nel caso di una sequenza di coordinate; ogni altro
+valore è restituito invariato. Il metodo \texttt{encode} serializza infine il risultato nella rappresentazione
+JSON corrispondente, che per
+costruzione è lo stesso per selezioni equivalenti ma con diverso ordine.
+ 
+Il \Cref{lst:coper-req} mostra come \texttt{CopernicusRequest} traduca l'identità in un nome
+di cartella.
 
 \lstinputlisting[
     language=Kotlin,
@@ -419,37 +482,62 @@ trascurabile. Il \Cref{lst:coper-req} riporta la derivazione del nome.
     caption={Derivazione del nome della cartella di cache.}
 ]{listings/implementazione/CopernicusRequest.kt}
 
+In \texttt{toDirectoryName}, la mappa passata a \texttt{CanonicalJson.encode} contiene le tre
+componenti dell'identità, per cui anche \texttt{endpoint} e \texttt{dataset} contribuiscono
+all'hash e due richieste uguali verso data store diversi non condividono la cartella. La
+codifica è data come argomento alla funzione di hash SHA-256~\cite{sha256}, calcolata da
+\texttt{sha256Hex}, e del digest si conservano le prime \texttt{HASH\_PREFIX\_LENGTH}, ovvero
+16, cifre esadecimali. Il nome finale della voce in cache è dato dal nome del dataset,
+reso sicuro per il file system da \texttt{toFileSystemSafe} che mantiene i soli caratteri ammessi
+e sostituisce tutti gli altri con un trattino basso, seguito dalle cifre del digest.
+ 
+Il nome è un compromesso fra leggibilità e probabilità di collisione: la parte derivata dal
+dataset consente a chi conduce la simulazione di riconoscere la cartella ispezionando la
+cache, mentre le cifre del digest ne stabiliscono l'identità. La lunghezza scelta corrisponde
+a 64 bit, quindi due richieste distinte finiscono nella stessa cartella con probabilità
+trascurabile.
+
 \subsection{L'atomicità della cache}
 \label{subsec:atomicita-impl}
 
 Il requisito \req{NF8} richiede che una voce di cache non sia mai osservabile in stato
-parziale, e distingue due forme di concorrenza che la realizzazione affronta con mezzi
-diversi.
+parziale. La realizzazione distingue due forme di concorrenza, che affronta con mezzi
+diversi: fra thread di una stessa esecuzione e fra esecuzioni distinte del simulatore.
 
-All'interno di una stessa esecuzione la produzione di una voce avviene al più una volta. Il
-gestore associa a ciascuna cartella di destinazione un monitor, 
-mantenuto in una mappa nel \texttt{companion object} della classe, in modo tale
-che sia condiviso fra tutte le
-istanze di \texttt{FileSystemCacheManager}: chi trova la voce assente lo acquisisce, e chi
-arriva dopo attende e poi verifica nuovamente la presenza della cartella, trovandola
-prodotta. Voci distinte, avendo un percorso diverso, restano indipendenti e possono quindi
-essere prodotte in parallelo.
+All'interno di una stessa esecuzione la produzione di una voce avviene al più una volta,
+secondo la logica riportata nel \Cref{lst:cache-lock}.
+
+\lstinputlisting[
+    language=Kotlin,
+    label={lst:cache-lock},
+    caption={Accesso a una voce di cache da parte di più thread.}
+]{listings/implementazione/FileSystemCacheManagerLock.kt}
+
+\texttt{getOrProduce} verifica per prima cosa la presenza della cartella:
+nel caso di una voce già prodotta da un'esecuzione
+precedente, il costo è un singolo accesso al file system. Se la voce è assente,
+\texttt{computeIfAbsent} ottiene il monitor associato alla cartella di destinazione.
+L'operazione è atomica sulla \texttt{ConcurrentHashMap}, per cui tutti i thread che cercano
+la stessa voce ricevono lo stesso oggetto. La mappa risiede nel \texttt{companion object},
+e il monitor è quindi condiviso anche fra istanze diverse di
+\texttt{FileSystemCacheManager}.
+
+Dentro il blocco \texttt{synchronized} la presenza della cartella viene verificata una
+seconda volta. Il primo thread a entrare non la trova e invoca \texttt{produce}; chi era in
+attesa, entrando dopo, la trova prodotta e la restituisce senza scaricare nulla. Se invece la
+produzione fallisce, nessuna cartella viene pubblicata, e il thread successivo tenta a sua
+volta la produzione. Voci in cache distinte hanno monitor distinti, e
+possono quindi essere prodotte in parallelo.
 
 Fra esecuzioni distinte del simulatore non ci possono essere monitor condivisi, e la garanzia
-di validità della voce viene ottenuta dal file system. La produzione avviene pertanto in una
-cartella temporanea, resa visibile sotto il nome definitivo solo dopo che i dati sono stati
-correttamente acquisiti, con una singola operazione atomica.
-Due esecuzioni concorrenti possono così sovrapporsi: entrambe scaricano, ma solo la prima a
-concludere pubblica la propria cartella, mentre la seconda, vedendosi rifiutare l'operazione,
-riconosce che la voce esiste già e scarta il proprio lavoro.
-
-La cartella temporanea è rimossa in ogni caso in cui avvenga un errore, inclusi i fallimenti
-della fonte dati, così che nessuna voce incompleta resti nella cache. 
-
-L'implementazione di \texttt{FileSystemCacheManager} dà per scontato che una voce già
-presente in cache sia completa e utilizzabile. Non è quindi previsto alcun recupero da uno
-stato parziale, né alcuna riverifica del contenuto su una voce già presente.
-Il \Cref{lst:cache-manager} riporta la produzione e la pubblicazione di una voce.
+di validità della voce viene ottenuta dal file system: la produzione avviene in una cartella
+temporanea, resa visibile sotto il nome definitivo tramite una singola operazione atomica solo dopo che i dati sono stati
+correttamente acquisiti. Due esecuzioni concorrenti
+possono così sovrapporsi: entrambe scaricano, ma solo la prima a concludere pubblica la
+propria cartella, mentre la seconda riconosce che la voce esiste già e scarta il proprio
+lavoro. Una voce già presente è considerata completa: non sono previsti recupero da stati
+parziali né riverifica del contenuto. Il \Cref{lst:cache-manager} riporta la produzione e la
+pubblicazione di una voce.
 
 \lstinputlisting[
     language=Kotlin,
@@ -457,45 +545,54 @@ Il \Cref{lst:cache-manager} riporta la produzione e la pubblicazione di una voce
     caption={Produzione atomica di una voce di cache.}
 ]{listings/implementazione/FileSystemCacheManager.kt}
 
+\texttt{produce} crea la cartella temporanea con \texttt{Files.createTempDirectory},
+la quale popola tramite la fonte con \texttt{provider.fetch}.
+Prima della pubblicazione, \texttt{check(hasData(temp))} esclude che
+una fonte terminata senza errori ma senza aver prodotto file generi una voce vuota.
+
+Il metodo \texttt{promote} tenta quindi lo spostamento con l'opzione \texttt{ATOMIC\_MOVE}. 
+Se fallisce e la cartella di destinazione esiste, allora significa che un'altra
+esecuzione ha pubblicato per prima, e restituisce \texttt{false}; se fallisce e la cartella
+non esiste, l'errore è di altra natura e l'eccezione viene rilanciata.
+
+Il flag \texttt{promoted} unisce i casi nel blocco \texttt{finally}: la cartella temporanea
+viene eliminata sia quando si è verificato un errore, inclusi i fallimenti della fonte, sia
+quando la corsa è stata persa, così che nessuna voce incompleta resti nella cache. In
+entrambi i casi di successo \texttt{produce} restituisce la stessa cartella definitiva, e
+chi la riceve non ha bisogno di sapere chi l'abbia pubblicata.
+
 \subsection{Il ciclo di vita di una richiesta}
 \label{subsec:ciclo-richiesta-impl}
 
-Il dialogo con i data store segue il paradigma descritto nella
-Sezione~\ref{sec:ogc-api-processes}. Diversi aspetti del suo comportamento concreto non
-compaiono però nella documentazione dei servizi, i quali
-espongono solo lo schema delle risposte e non come vengono popolate, e sono stati ricostruiti
-sperimentalmente, osservando le risposte e confrontandole con il codice del
-client ufficiale distribuito da ECMWF. Quest'ultimo è
-scritto in Python e non nei linguaggi impiegati nel simulatore (Java e Kotlin), 
-è stato quindi adoperato
-come riferimento per il comportamento atteso, non come dipendenza. Il modulo confina
-l'intero dialogo in una sola classe, che è l'unico punto in cui la struttura del protocollo
+Il dialogo con i data store segue il paradigma descritto nella \Cref{sec:ogc-api-processes}.
+Il riferimento dei servizi\footnote{ECMWF Data
+Stores Processing API: \url{https://cds.climate.copernicus.eu/api/retrieve/v1/docs}.} ne
+descrive gli endpoint e lo schema dei messaggi, ma non come questi vengano popolati: diversi
+aspetti del comportamento concreto sono stati quindi ricostruiti sperimentalmente, osservando
+le risposte e confrontandole con il codice del client ufficiale distribuito da
+ECMWF. Il modulo confina l'intero dialogo in
+\texttt{CopernicusDataStoreProvider}, che è l'unico punto in cui la struttura del protocollo
 è nota.
-
-Una richiesta viene sottomessa in \texttt{POST} al percorso di esecuzione del processo.
-Lo standard descritto nella Sezione~\ref{sec:ogc-api-processes} lo definisce come
-\texttt{/processes/\{processID\}/execution}; i data store lo precedono con un prefisso
-proprio e assegnano al \emph{processID} il nome del dataset richiesto\footnote{ECMWF Data Stores Processing API: \url{https://cds.climate.copernicus.eu/api/retrieve/v1/docs}.}.
-
-La parte che precede il prefisso è l'indirizzo del data store, ricevuto dal layer come
-argomento (Sezione~\ref{subsec:costruttori-impl}), ed è l'unica porzione che cambia fra
-\ac{CDS}, \ac{EWDS} e \ac{ADS}: il resto del percorso è comune ai tre. Il corpo della
-richiesta contiene la sola selezione dei parametri, associata alla chiave
-\texttt{inputs}. L'identità dell'utente viaggia in tutte le
-chiamate al servizio (tranne per il recupero finale del file, privo di autenticazione),
-nell'intestazione dedicata \texttt{PRIVATE-TOKEN}.
-
+ 
+Una richiesta viene sottomessa in \texttt{POST} al percorso di esecuzione del processo, che
+lo standard definisce come \texttt{/processes/\{processID\}/execution}. I data store lo
+precedono con un prefisso proprio, a sua volta preceduto dall'indirizzo del data store
+ricevuto dal layer come \texttt{endpoint}, e assegnano al \emph{processID} il nome del
+dataset richiesto. Il corpo della richiesta contiene la sola selezione dei parametri,
+associata alla chiave \texttt{inputs}. L'identità dell'utente viaggia nell'intestazione
+\texttt{PRIVATE-TOKEN} in tutte le chiamate al servizio, tranne il recupero finale del file,
+che avviene senza autenticazione.
+ 
 La risposta alla sottomissione espone l'indirizzo da interrogare in tre forme: un
 identificativo del processo, l'intestazione \texttt{Location} e un elenco di collegamenti.
-Il client segue il collegamento, e non ricostruisce mai un percorso a partire
-dall'identificativo. Le fasi successive procedono
-allo stesso modo, seguendo il collegamento di monitoraggio durante l'attesa e 
+Il client segue il collegamento, sulle orme del client ufficiale. Le fasi successive procedono
+allo stesso modo, seguendo il collegamento di monitoraggio durante l'attesa e
 quello dei risultati a completamento avvenuto.
-
+ 
 Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso,
 come fa anche il client ufficiale, così che uno stato non previsto produca un avviso
 al posto di interrompere l'attesa. Il modulo li ripartisce in tre categorie:
-
+ 
 \begin{itemize}
     \item \texttt{successful}, unico stato di successo, dopo il quale il collegamento ai
     risultati è disponibile;
@@ -505,27 +602,35 @@ al posto di interrompere l'attesa. Il modulo li ripartisce in tre categorie:
     terminali di fallimento, per i quali la causa va ricostruita e mostrata al modellista
     (Sezione~\ref{subsec:fallimenti-impl}).
 \end{itemize}
-
-L'attesa procede per interrogazioni successive a intervalli raddoppiati a ogni tentativo,
-a partire da due secondi e fino a un massimo di due minuti.
-Una crescita esponenziale dell'intervallo tra una interrogazione e la successiva permette
-di evitare di effettuare chiamate di rete inutili per risorse il cui tempo di elaborazione
-è molto lungo.
-Poiché il crescere dell'intervallo rende le interrogazioni sempre più
-rade e un'elaborazione può protrarsi a lungo (Sezione~\ref{sec:ogc-api-processes}), il
-client segnala di essere ancora in attesa a intervalli regolari, così che un'esecuzione
-lunga non appaia bloccata. Un limite complessivo, di trenta minuti per default, interrompe
-l'attesa; poiché la durata di un'elaborazione dipende dall'ampiezza della richiesta,
-il limite è presente in modo opzionale fra gli argomenti del layer
-(Sezione~\ref{subsec:costruttori-impl}).
-Il \Cref{lst:provider} riporta il ciclo di attesa.
-
+ 
+L'attesa è realizzata da \texttt{awaitSuccess}, riportata nel \Cref{lst:provider}.
+ 
 \lstinputlisting[
     language=Kotlin,
     label={lst:provider},
     caption={[Attesa del completamento di una richiesta.]Attesa del completamento di una richiesta. Il ramo degli stati transitori,
              omesso, segnala periodicamente che l'attesa prosegue.}
 ]{listings/implementazione/DataStoreProvider.kt}
+ 
+La scadenza complessiva è calcolata una sola volta tramite \texttt{TimeSource.Monotonic}.
+Il limite è di trenta minuti per default
+ed è configurabile dal layer (Sezione~\ref{subsec:costruttori-impl}), poiché la durata di
+un'elaborazione dipende dall'ampiezza della richiesta.
+ 
+A ogni iterazione, lo stato viene estratto dal corpo della risposta di monitoraggio con
+\texttt{parseStatus}, e i rami del \texttt{when} realizzano le tre categorie. Lo stato
+\texttt{successful} restituisce l'indirizzo dei risultati, e se il collegamento corrispondente
+manca la risposta è incoerente e produce un errore. Gli stati terminali passano
+a \texttt{failOnStatus}, che ricostruisce la causa del fallimento
+(Sezione~\ref{subsec:fallimenti-impl}). Il ramo \texttt{else} registra infine un avviso per
+uno stato sconosciuto, senza interrompere l'attesa.
+ 
+Superato il controllo della scadenza con \texttt{check}, il thread attende e l'intervallo
+viene raddoppiato, limitato da \texttt{coerceAtMost} al valore di \texttt{maxPollInterval}:
+partendo da due secondi fino a un massimo di due minuti, le interrogazioni diminuiscono per
+le elaborazioni lunghe, evitando chiamate di rete inutili. Proprio perché le interrogazioni
+diventano sempre più rade, il ramo degli stati transitori segnala a intervalli regolari che
+l'attesa prosegue, così che un'esecuzione lunga non appaia bloccata.
 
 \subsection{La verifica di integrità}
 \label{subsec:integrita-impl}
@@ -562,27 +667,34 @@ unico controllo che il client ufficiale effettua, resta invece sempre verificata
 Un tentativo di acquisizione può fallire in due modi distinti, che il servizio segnala in
 forme diverse, e la ricostruzione della causa è la parte che si è discostata
 maggiormente dal protocollo descritto nella Sezione~\ref{sec:ogc-api-processes}.
-
+ 
 Il primo è un errore a livello di protocollo, segnalato da un codice di stato di errore e
 accompagnato da un corpo conforme all'RFC 7807~\cite{rfc7807}. La convenzione prevede che
 la spiegazione leggibile risieda nel campo \texttt{detail}; i data store, però, lo popolano
-solo in parte, e collocano la traccia di esecuzione in \texttt{traceback}, un membro di estensione
-che la RFC consente. Il client dà quindi la precedenza a \texttt{detail}, ripiega su
-\texttt{traceback} e, in mancanza di entrambi, sul titolo del problema.
-
+solo in parte, e collocano la traccia di esecuzione in \texttt{traceback}, un membro di
+estensione.
+ 
 Il secondo è il fallimento dell'elaborazione: qui il protocollo ha successo, la risposta ha
 esito positivo, e il fallimento è dichiarato dallo stato. Lo standard prevede in questo caso
 un campo di primo livello destinato al messaggio, che però i data store lasciano vuoto. La
 causa è raggiungibile per un'altra via: il collegamento ai risultati, che compare anche su
 una richiesta fallita, risponde con un errore il cui corpo è un problema descritto secondo la
 convenzione precedente, ed è lì che la traccia di esecuzione si trova. Il client segue quindi
-quel collegamento e ricade sul campo previsto dallo standard solo se questa via non produce
-nulla, mantenendolo perché una revisione futura del servizio che si allinei maggiormente allo
-standard descritto nella Sezione~\ref{sec:ogc-api-processes} potrebbe cominciare a popolarlo.
-Il \Cref{lst:problem-detail} riporta la ricostruzione della causa.
-
+quel collegamento, e ricade sul campo previsto dallo standard solo se questa via non produce
+nulla, nel caso in cui una futura revisione del servizio lo popoli.
+ 
+In entrambi i casi il messaggio mostrato al modellista è prodotto da \texttt{describe},
+riportata nel \Cref{lst:problem-detail}.
+ 
 \lstinputlisting[
     language=Kotlin,
     label={lst:problem-detail},
     caption={[Ricostruzione del fallimento di una richiesta]Ricostruzione della causa di un fallimento dal corpo della risposta.}
 ]{listings/implementazione/ProblemDetail.kt}
+ 
+La prima istruzione realizza l'ordine di precedenza con una catena di operatori \texttt{?:}:
+viene usato \texttt{detail} se presente, altrimenti \texttt{traceback}, altrimenti il titolo
+del problema. Se nessuno dei tre è presente la funzione restituisce una stringa vuota.
+Al messaggio vengono poi accodati il tipo
+del problema e, se presente, l'identificativo fornito dal servizio, che permette
+di ricondurre l'errore alla specifica richiesta.

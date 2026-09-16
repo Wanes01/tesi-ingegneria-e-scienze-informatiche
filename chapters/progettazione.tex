@@ -34,14 +34,14 @@ campioni durante l'intero percorso che va dalla lettura del file al valore resti
 dal layer.
 
 I formati \ac{GRIB} e \ac{NetCDF} esposti dai data store Copernicus espongono
-tutte le misure in virgola mobile, anche nel caso in cui siano esse in origine
+tutte le misure in virgola mobile, anche quando in origine sono
 interi, booleani o categorici. Qualunque sia il significato originale del dato grezzo,
 il tipo a doppia precisione è in grado di rappresentarlo senza perdita. Il modulo
 adotta quindi \texttt{Double} come unico tipo dei campioni lungo tutta la catena
 interna.
 
 La scelta non è dettata solo dalla capacità rappresentativa:
-il meccanismo di caricamento non è in grado di istanziare classi generiche (Sezione~\ref{subsec:alchemist-loader}),
+il meccanismo di caricamento non è in grado di istanziare classi generiche (Sezione~\ref{subsec:alchemist-loader});
 ciò comporta che rendere generica anche la rappresentazione,
 introducendo una griglia parametrica in un tipo \texttt{T} arbitrario, avrebbe
 richiesto una specializzazione lungo l'intera gerarchia
@@ -186,7 +186,7 @@ La \Cref{fig:uml-interpolazione} riporta la gerarchia risultante.
 
 L'astrazione principale, \texttt{SpatioTemporalInterpolation}, attraversa entrambi i
 domini: riceve la posizione geografica, due griglie adiacenti all'istante richiesto e
-il peso che colloca l'istante richiesto fra i due, e ne produce un valore. La ragione per
+il peso che colloca l'istante richiesto fra le due, e ne produce un valore. La ragione per
 cui la regola è espressa da un'unica astrazione anziché da due composte in un ordine
 fissato è che non tutte le regole concepibili sono separabili spazialmente e temporalmente: una regola
 che consideri contemporaneamente i campioni delle due griglie, senza risolvere prima lo spazio

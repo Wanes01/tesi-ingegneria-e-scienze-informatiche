@@ -16,7 +16,7 @@ Il sotto-obiettivo di rappresentazione è stato soddisfatto da \texttt{RasterGri
 e \texttt{GridSnapshots}, che descrivono rispettivamente una griglia di campioni
 e una successione di griglie omogenee, indipendenti dal formato e dalla fonte
 da cui tali dati provengono. Queste astrazioni portano con sé l'estensione
-spaziale e temporale nelle quali la grandezza di riferimento è nota, e trattano
+spaziale e temporale entro la quale la grandezza di riferimento è nota, e trattano
 in modo esplicito le celle prive di misura (\req{F7}); delle griglie sono fornite
 una realizzazione densa e una sparsa, scelte dinamicamente durante la costruzione
 della serie in funzione della densità delle singole griglie.
@@ -75,7 +75,7 @@ Il modulo opera entro alcune ipotesi e alcune scelte prese.
   \item \textbf{La sola lettura}: il valore esposto cambia soltanto perché il
   tempo di simulazione avanza lungo una serie di griglie già disponibile. Il dato
   sottostante non può quindi essere aggiornato durante l'esecuzione.
-  Resta quindi fuori portata ogni
+  Di conseguenza resta fuori portata ogni
   scenario in cui l'ambiente conserva l'effetto di ciò che i nodi hanno fatto,
   ad esempio una simulazione in cui dei depuratori riducono la concentrazione
   degli inquinanti nella zona in cui operano.
@@ -95,7 +95,7 @@ Il modulo opera entro alcune ipotesi e alcune scelte prese.
 \section{Sviluppi futuri}
 \label{sec:sviluppi-futuri}
 
-La struttura del modulo rende possibile alcune direzioni di sviluppo future senza
+La struttura del modulo rende possibili alcune direzioni di sviluppo future senza
 modificarne le parti già esistenti.
 
 La prima è il superamento della restrizione sulla forma della griglia.
@@ -127,4 +127,4 @@ o un sistema di conversione generica dal tempo di simulazione
 a una rappresentazione arbitraria del tempo, semplificherebbe la corrispondenza
 fra i due domini temporali incontrati nel lavoro svolto; poiché tale 
 corrispondenza è stabilita unicamente nel layer, l'impatto di eventuali
-modifiche sul dominio temporale resterebbero circoscritte a esso.
+modifiche sul dominio temporale resterebbe circoscritto a esso.

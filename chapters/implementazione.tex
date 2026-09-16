@@ -90,7 +90,7 @@ riportati all'utente.
 
 Lo schema di un file non è però fissato a priori, in due sensi. Il primo è l'ordine delle
 dimensioni nella dichiarazione della variabile, che determina la disposizione dei valori in
-memoria: le convenzioni \ac{CF} raccomandano
+memoria: le convenzioni \ac{CF} raccomandano l'ordine
 $(\text{tempo}, \text{latitudine}, \text{longitudine})$ senza imporlo~\cite{cf_conventions},
 e la libreria restituisce i valori nell'ordine in cui il file li dispone. Poiché le griglie
 assumono che le righe corrispondano alle latitudini, un ordine diverso produrrebbe, senza
@@ -215,7 +215,7 @@ Il \Cref{lst:axes-search} riporta la prima delle tre.
     caption={Individuazione dell'indice più vicino a una coordinata sull'asse.}
 ]{listings/implementazione/Axes.kt}
 
-La funzione si appoggia a \texttt{Arrays.binarySearch}, che restituisce l'indice della
+La funzione si appoggia ad \texttt{Arrays.binarySearch}, che restituisce l'indice della
 coordinata se questa è presente sull'asse, altrimenti il valore $-p-1$, dove $p$ è il
 punto di inserimento, ovvero l'indice del primo elemento maggiore della coordinata.
 \texttt{upperIndex} ricava $p$ da questa codifica, e i rami del \texttt{when} coprono i
@@ -403,7 +403,7 @@ il valore associato nomini una classe.
 \fi
 
 Il secondo è l'abilitazione della verifica del digest MD5, mantenuta obbligatoria
-benché un valore predefinito sarebbe naturale. Ogni argomento facoltativo genera una
+benché un valore predefinito fosse naturale. Ogni argomento facoltativo genera una
 variante della firma, ottenuta rimuovendo gli argomenti a partire dall'ultimo: la
 variante più corta di un costruttore è quindi formata dai soli argomenti obbligatori.
 Rendendo facoltativo anche questo argomento, la firma più corta del terzo costruttore
@@ -469,7 +469,7 @@ ai data store l'ordine di una
 lista è semantico, come nel caso di una sequenza di coordinate; ogni altro
 valore è restituito invariato. Il metodo \texttt{encode} serializza infine il risultato nella rappresentazione
 JSON corrispondente, che per
-costruzione è lo stesso per selezioni equivalenti ma con diverso ordine.
+costruzione è la stessa per selezioni equivalenti ma con diverso ordine.
 Il \Cref{lst:coper-req} mostra come \texttt{CopernicusRequest} traduca l'identità in un nome
 di cartella.
 
@@ -543,8 +543,8 @@ pubblicazione di una voce.
     caption={Produzione atomica di una voce di cache.}
 ]{listings/implementazione/FileSystemCacheManager.kt}
 
-\texttt{produce} crea la cartella temporanea con \texttt{Files.createTempDirectory},
-la quale popola tramite la fonte con \texttt{provider.fetch}.
+\texttt{produce} crea la cartella temporanea con \texttt{Files.createTempDirectory}
+e la popola tramite la fonte con \texttt{provider.fetch}.
 Prima della pubblicazione, \texttt{check(hasData(temp))} esclude che
 una fonte terminata senza errori ma senza aver prodotto file generi una voce vuota.
 
@@ -589,8 +589,8 @@ quello dei risultati a completamento avvenuto.
  
 Lo stato di una richiesta viene letto come stringa e non come valore di un insieme chiuso,
 come fa anche il client ufficiale, così che uno stato non previsto produca un avviso
-al posto di interrompere l'attesa. Il modulo li ripartisce in tre categorie:
- 
+al posto di interrompere l'attesa. Il modulo ripartisce gli stati noti in tre categorie:
+
 \begin{itemize}
     \item \texttt{successful}, unico stato di successo, dopo il quale il collegamento ai
     risultati è disponibile;
